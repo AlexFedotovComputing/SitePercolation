@@ -1,0 +1,482 @@
+// CubicPercSimplified.cpp: определяет точку входа для консольного приложения.
+//
+
+#include "stdafx.h"
+#include "math.h"
+#include <stdio.h> 
+#include <iostream>
+#include <fstream>
+#include <ctime>
+#include<algorithm>
+#include <string>
+#include <set>
+#include <vector>
+using namespace std;
+string write_to_file="p MS MSEL Prob QoC";
+class Cluster// класс, используемый для разметки кластеров
+{
+	// Access specifier 
+public:
+
+	// Data Members 
+	long int cluster_label; //переменная, которая хранит в себе уникальный идентификатор класса
+	vector<vector<long int>> vec_with_cluster_points; //вектор, хранящий в себе список точек кластера
+	long int k;//количество точек в кластере
+	double mean_distance_betw_pnts;//среднее расстояние между точками в кластере
+
+	Cluster(int label) //конструктор кластера, требует только идентификатор класса
+	{
+		this->cluster_label = label;
+		this->k = 0;
+	//	cout << "Cluster label is: " << std::to_string(cluster_label)+"\n";
+	}
+
+	void addPoint(int x, int y, int z) { //процедура добавления точки в кластер по её координатам в 3-D массиве
+		vector<long int> dummy; //каждая точка идёт как вектор
+		dummy.push_back(x); // компоненты вектора идут из i j k координат
+		dummy.push_back(y);
+		dummy.push_back(z);
+		vec_with_cluster_points.push_back(dummy);//точка сгружается в вектор со списком точек
+		this->k = k + 1;
+	}
+
+	double computeDistanceBetweenTwoPoints(int num1, int num2) {//расчет среднего расстояния между двумя точками в кластере
+		double dummy;//переменная суммирования
+		vector<long int> dummy1;
+		vector<long int> dummy2;
+		dummy1 = this->vec_with_cluster_points[num1];
+		dummy2 = this->vec_with_cluster_points[num2];
+		dummy = pow((pow((dummy1[0] - dummy2[0]), 2) + pow((dummy1[1] - dummy2[1]), 2) + pow((dummy1[2] - dummy2[2]), 2)), (0.5));
+		return dummy;
+	}
+public: long int getSize() {//возвращает количество точек в кластере
+		return this->k;
+	}
+
+	double computeMeanDistanceInCluster() {//расчет среднего расстояния между точками внутри кластера
+		double allDistances = 0;//сумма всех расстояний
+	//	int len = this->vec_with_cluster_points.size();//количество точек в кластере
+		int antiBinomial = 0;//счетчик количества пар
+		for (int i = 0; i < (this->k - 2); i++) {//точка номер 1 перебирается по всем имеющимся в кластере минус 1
+			for (int j = i + 1; j < this->k - 1; j++)//точка 2 по тем точкам, что правее точки 1
+			{
+				allDistances = allDistances + computeDistanceBetweenTwoPoints(i, j);
+				antiBinomial++;
+			}
+
+		}
+		allDistances = allDistances / antiBinomial;
+		this->mean_distance_betw_pnts = allDistances;
+		return allDistances;
+	}
+	//bool operator<(Cluster const &r) const { return getSize() < r.getSize(); }
+};
+
+class DomainClusters
+{
+public:
+vector<Cluster> internalClusterList;
+		void clearAndPrepare() { //процедура вайпа перед распознаванием
+			(this->internalClusterList).clear();
+			vector<Cluster>().swap(this->internalClusterList);
+			//(this->internalClusterList).shrink_to_fit();
+		}
+		DomainClusters() {
+			internalClusterList.clear();
+			internalClusterList.shrink_to_fit();
+		}
+		void addPointToCluster(int k, int x, int y, int z) {//тестирование точки и внедрение в кластер
+			int dummyInt = 0;//переменная-детектор того, существует ли уже кластер с таким k
+			for (Cluster &dummy: this->internalClusterList) {//перебор уже имеющихся кластеров в векторе, нельзя ли к ним добавить новую точку
+				if (dummy.cluster_label==k)
+				{
+					dummy.addPoint(x,y,z);
+					dummyInt = 1;
+					break;
+				}
+			}
+			if (dummyInt == 0) {//если ни к одному кластеру новая точка не добавилась, создаем новый кластер
+				Cluster novitchok = Cluster(k);
+				novitchok.addPoint(x, y, z);
+				internalClusterList.push_back(novitchok);
+			}
+		}
+		double getMeanSize() {//средний размер кластера
+			double dummySum = 0;
+			for (Cluster &dummy : this->internalClusterList) {//перебор уже имеющихся кластеров в векторе
+				dummySum = dummySum + dummy.getSize();
+			}
+			dummySum = dummySum / internalClusterList.size();
+			return dummySum;
+		}
+		double probBelongToLargest() {//вероятность принадлежности точки наибольшему кластеру
+			double filled_cells=0;//общее количество заполненных точек в домене
+			double size = 0;//размер будущего наибольшего кластера
+			for (Cluster &dummy : internalClusterList) {//перебор уже имеющихся кластеров в векторе
+				filled_cells = filled_cells + dummy.getSize();
+				if (dummy.getSize() > size) {
+					size = dummy.getSize();
+				}
+			}
+			size = size / filled_cells;
+			return size;
+		}
+
+
+		double getMeanSizeExclLargest() {//средний размер кластера, исключая наибольший кластер
+			double dummySum = 0;
+			int dummySize = this->internalClusterList.size();
+			if (dummySize <= 1) {
+				return 0.0;
+			}
+			else {
+				sort(this->internalClusterList.begin(), this->internalClusterList.end(), [](auto && l, auto && r) { return l.k < r.k; });
+				for (int i = 0; i < ((this->internalClusterList.size()) - 2); i++) {
+					//cout << "\n Cluster size:"+std::to_string(internalClusterList[i].getSize());
+					dummySum = dummySum + this->internalClusterList[i].getSize();
+					//	cout << internalClusterList[i].getSize();
+						//cout << "\n";
+				}
+				dummySum = dummySum / (this->internalClusterList.size() - 1);
+				return dummySum;
+			}
+		}
+
+		double computeMeanDistanceInDomain() {
+			double mean_distance= 0;
+			for (Cluster &dummy : this->internalClusterList) {
+				mean_distance = mean_distance+ dummy.computeMeanDistanceInCluster();
+			}
+			mean_distance = mean_distance/internalClusterList.size();
+			return mean_distance;
+		}
+
+		double computeMeanDistanceInDomainExclLargest() {
+			double mean_distance = 0;
+			sort(this->internalClusterList.begin(), this->internalClusterList.end(), [](auto && l, auto && r) { return l.k < r.k; });
+			for (int i = 0; i < (internalClusterList.size() - 2); i++) {
+				mean_distance = mean_distance+ internalClusterList[i].computeMeanDistanceInCluster();
+			}
+			mean_distance /= (internalClusterList.size()-1);
+			return mean_distance;
+		}
+
+		int getQuantityOfClusters() {
+			return this->internalClusterList.size();
+		}
+};
+double averageVectorValue(vector<double> xx) {
+	double sum = 0;
+	for (const double &dummy : xx) {//перебор уже имеющихся кластеров в векторе
+		sum=sum+dummy;
+	}
+	sum  = sum/(double)xx.size();
+	return sum;
+}
+double averageVectorValue(vector<int> xx) {
+	double sum = 0;
+	for (const int &dummy : xx) {//перебор уже имеющихся кластеров в векторе
+		sum = sum +dummy;
+	}
+	sum = sum/(double)xx.size();
+	return sum;
+}
+
+int main()
+{
+
+	vector<Cluster> current_domain_clusters;
+	vector<double> MS, MSEL, Prob, QoC;
+
+	double p, pOx, dummy; string line;
+	int n, res, l, i, j, k, m, i1, j1, k1, iterFlag, samplingInter, count_filled;
+	p = 0.36;//вероятность заполнения
+	pOx = 0.0;//вероятность окисления
+	n = 25;//размер субячеек
+	res = 4;
+
+	ifstream inFile1;
+	inFile1.open("pOx.txt");
+	inFile1 >> pOx;
+	inFile1.close();
+
+	ifstream inFile2;
+	inFile2.open("p.txt");
+	inFile2 >> p;
+	inFile2.close();
+
+	ifstream inFile3;
+	inFile3.open("res.txt");
+	inFile3 >> res;
+	inFile3.close();
+
+	ifstream inFile4;
+	inFile4.open("n.txt");
+	inFile4 >> n;
+	inFile4.close();
+
+
+	int nSamples = 3;
+	m = n * res;
+	long int*** initDomain = new long int**[n];
+	long int*** extenDomain = new long int**[m+2];
+	long int*** extenDomainNew = new long int**[m+2];
+	long int*** clusterType = new long int**[m+2];
+	srand(time(NULL));
+
+	for (int i = 0; i< n; i = i + 1) {
+		initDomain[i] = new long int*[n];
+		for (int j = 0; j < n; j = j + 1) {
+			initDomain[i][j] = new long int[n];
+		}
+	}
+	for (int i = 0; i < m+2; i = i + 1) {
+		extenDomain[i] = new long int*[m+2];
+		extenDomainNew[i] = new long int*[m+2];
+		clusterType[i] = new long int*[m+2];
+		for (int j = 0; j < m+2; j = j + 1) {
+			extenDomain[i][j] = new long int[m+2];
+			extenDomainNew[i][j] = new long int[m+2];
+			clusterType[i][j] = new long int[m+2];
+		}
+	}
+	for (int i = 0; i< n; i = i + 1) {
+		for (int j = 0; j < n; j = j + 1) {
+			for (int k = 0; k < n; k = k + 1) {
+				if (rand() / RAND_MAX < p)
+				{
+					initDomain[i][j][k] = 1;
+				}
+				else { initDomain[i][j][k] = 0; }
+			}
+		};
+	}
+	m = m + 2;//костыыыыль
+	do {
+
+		for (samplingInter = 0; samplingInter < nSamples; samplingInter++) {
+			if (samplingInter % 5 == 0) {
+				cout << "\n p:"+std::to_string(p)+"   pOx:"+std::to_string(pOx)+"   sample:" + std::to_string(samplingInter);
+			}
+			//генерация начального массива
+			m = m - 2;//костыыыыль
+			for (int i = 0; i < n; i = i + 1) {
+				for (int j = 0; j < n; j = j + 1) {
+					for (int k = 0; k < n; k = k + 1) {
+						dummy = (double)std::rand() / RAND_MAX;
+						//std::cout << std::to_string(dummy) << '\n';
+						if (dummy < p) { initDomain[i][j][k] = 1; }
+						else {
+							initDomain[i][j][k] = 0;
+						}
+						//std::cout << std::to_string(initDomain[i][j][k]) << '\n';
+					}
+				};
+			}
+
+			count_filled = 1;
+			for (int i = 0; i < m + 2; i = i + 1) {
+				for (int j = 0; j < m + 2; j = j + 1) {
+					for (int k = 0; k < m + 2; k = k + 1) {
+						if (i == 0 || j == 0 || k == 0 || i == m + 1 || k == m + 1 || j == m + 1) {
+							extenDomain[i][j][k] = 0;
+							extenDomainNew[i][j][k] = 0;
+						}
+						else {
+							extenDomain[i][j][k] = initDomain[(int)ceil((i - 1) / res)][(int)ceil((j - 1) / res)][(int)ceil((k - 1) / res)];
+							extenDomainNew[i][j][k] = extenDomain[i][j][k];
+							if (extenDomain[i][j][k] == 1) {
+								clusterType[i][j][k] = count_filled;
+								count_filled = count_filled + 1;
+							}
+							else {
+								clusterType[i][j][k] = 0;
+							}
+						}
+					}
+				};
+			}
+			m = m + 2;//Вот это костыль, чтобы не переписывать код из предыдущей версии
+			l = 1;
+			for (int i = 0; i < m; i = i + 1) {
+				for (int j = 0; j < m; j = j + 1) {
+					for (int k = 0; k < m; k = k + 1) {
+						if (extenDomainNew[i][j][k] == 1) {
+							if ((extenDomainNew[i + 1][j][k] == 0) || (extenDomainNew[i - 1][j][k] == 0) || (extenDomainNew[i][j + 1][k] == 0) ||
+								(extenDomainNew[i][j - 1][k] == 0) || (extenDomainNew[i][j][k + 1] == 0) || (extenDomainNew[i][j][k - 1] == 0) || ((i) % res == 0) || ((j) % res == 0) || ((k) % res == 0))/*||																																														   i==0||i==(m-1)||j==0||j==(m-1)||k==0||k==(m-1))*/
+							{
+								dummy = (double)std::rand() / RAND_MAX;
+								if (dummy < pOx) {
+									extenDomain[i][j][k] = 0;
+									clusterType[i][j][k] = 0;
+								}//непроводящий оксид!!! такая модель!
+							}
+						}
+					}
+				};
+			}
+
+			//кластеризация
+			iterFlag = 1;
+			for (l = 0; (l < 200) && (iterFlag > 0); l = l + 1) {
+				//в объеме
+				iterFlag = 0;
+				for (int i = 0; i < m; i = i + 1) {
+					for (int j = 0; j < m; j = j + 1) {
+						for (int k = 0; k < m; k = k + 1) {
+							if (i == 0 || j == 0 || k == 0 || i == m - 1 || k == m - 1 || j == m - 1) {
+								clusterType[i][j][k] = 0;
+							}
+							else {
+								//	cout << std::to_string(clusterType[i][j][k]) + "    ";
+								if (extenDomain[i][j][k] == 1) {
+									if ((extenDomain[i - 1][j][k] == 1) && (clusterType[i][j][k] != clusterType[i - 1][j][k]))
+									{
+										clusterType[i][j][k] = std::max(clusterType[i][j][k], clusterType[i - 1][j][k]);
+										clusterType[i - 1][j][k] = std::max(clusterType[i][j][k], clusterType[i - 1][j][k]);
+										iterFlag++;
+									}
+
+									if ((extenDomain[i + 1][j][k] == 1) && (clusterType[i][j][k] != clusterType[i + 1][j][k]))
+									{
+										clusterType[i][j][k] = std::max(clusterType[i][j][k], clusterType[i + 1][j][k]);
+										clusterType[i + 1][j][k] = std::max(clusterType[i][j][k], clusterType[i + 1][j][k]);
+										iterFlag++;
+									}
+
+									if ((extenDomain[i][j - 1][k] == 1) && (clusterType[i][j][k] != clusterType[i][j - 1][k]))
+									{
+										clusterType[i][j][k] = std::max(clusterType[i][j][k], clusterType[i][j - 1][k]);
+										clusterType[i][j - 1][k] = std::max(clusterType[i][j][k], clusterType[i][j - 1][k]);
+										iterFlag++;
+									}
+
+									if ((extenDomain[i][j + 1][k] == 1) && (clusterType[i][j][k] != clusterType[i][j + 1][k]))
+									{
+										clusterType[i][j][k] = std::max(clusterType[i][j][k], clusterType[i][j + 1][k]);
+										clusterType[i][j + 1][k] = std::max(clusterType[i][j][k], clusterType[i][j + 1][k]);
+										iterFlag++;
+									}
+									if ((extenDomain[i][j][k - 1] == 1) && (clusterType[i][j][k] != clusterType[i][j][k - 1]))
+									{
+										clusterType[i][j][k] = std::max(clusterType[i][j][k], clusterType[i][j][k - 1]);
+										clusterType[i][j][k - 1] = std::max(clusterType[i][j][k], clusterType[i][j][k - 1]);
+										iterFlag++;
+									}
+									if ((extenDomain[i][j][k + 1] == 1) && (clusterType[i][j][k] != clusterType[i][j][k + 1]))
+									{
+										clusterType[i][j][k] = std::max(clusterType[i][j][k], clusterType[i][j][k + 1]);
+										clusterType[i][j][k + 1] = std::max(clusterType[i][j][k], clusterType[i][j][k + 1]);
+										iterFlag++;
+									}
+								}
+							}
+						};
+					}
+				}
+			}
+			current_domain_clusters.clear();//очистка вектора со списком кластеров данного домена
+			current_domain_clusters.shrink_to_fit();
+
+			DomainClusters currentDomain;
+			currentDomain.clearAndPrepare();
+			for (int i = 0; i < m; i = i + 1) {
+				for (int j = 0; j < m; j = j + 1) {
+					for (int k = 0; k < m; k = k + 1) {
+						if (extenDomain[i][j][k] == 1 && clusterType[i][j][k]>0){
+							currentDomain.addPointToCluster(clusterType[i][j][k], i, j, k);
+						}
+					}
+				}
+			}
+			double da, db, dc, dd;
+			da = currentDomain.getMeanSize();
+			db = currentDomain.getMeanSizeExclLargest();
+			dc = currentDomain.probBelongToLargest();
+			dd = currentDomain.getQuantityOfClusters();
+			MS.push_back(da);
+			MSEL.push_back(db);
+			Prob.push_back(dc);
+			QoC.push_back(dd);
+			//cout << "MS:" + std::to_string(da);
+			//cout << "      MSEL:" + std::to_string(db);
+			//cout << "     MD:"+ std::to_string(currentDomain.computeMeanDistanceInDomain());
+			//cout << "   Prob:" + std::to_string(dc);
+			//создание_кластеров
+
+			//cout << "   QoC:" + std::to_string(dd) + "\n";
+			
+		};
+		cout << "p:" + std::to_string(p);
+		cout << "  MS:" + std::to_string(averageVectorValue(MS));
+		cout << "  MSEL:" + std::to_string(averageVectorValue(MSEL));
+		//cout << "     MD:"+ std::to_string(currentDomain.computeMeanDistanceInDomain());
+		cout << "  Prob: " + std::to_string(averageVectorValue(Prob));
+		//создание_кластеров   p MS MSEL Prob QoC
+
+		cout << "     QoC:" + std::to_string(QoC.size())+"\n";
+	
+
+		write_to_file = write_to_file + "\n" + std::to_string(p) + " " + std::to_string(averageVectorValue(MS)) + " " + std::to_string(averageVectorValue(MSEL)) + " " + std::to_string(averageVectorValue(Prob)) + " " + std::to_string(averageVectorValue(QoC));
+	
+		p = p + 0.03;
+
+		ofstream myfile6("pOx_" + std::to_string(pOx) + "___n" + std::to_string(n) + "___res__" + std::to_string(res) + "__num" +std::to_string(samplingInter) + ".dat");
+		if (myfile6.is_open())
+		{
+						myfile6 << write_to_file;
+			
+			myfile6.close();
+		}
+		MS.clear();
+		MSEL.clear();
+		Prob.clear();
+		QoC.clear();
+		MS.shrink_to_fit();
+		MSEL.shrink_to_fit();
+		Prob.shrink_to_fit();
+		QoC.shrink_to_fit();
+
+	} while(p<0.98);
+	
+
+
+
+
+
+	/*ofstream myfile6("Cluster__p" + std::to_string(p) + "___pOx_" + std::to_string(pOx) + "___n" + std::to_string(n) + "___res__" + std::to_string(res) + "__num");// +std::to_string(samplingInter) + ".dat");
+	if (myfile6.is_open())
+	{
+		for (int i = 0; i < m; i = i + 1) {
+			for (int j = 0; j < m; j = j + 1) {
+				for (int k = 0; k < m; k = k + 1) {
+					line = std::to_string(i) + ' ' + std::to_string(j) + ' ' + std::to_string(k) + ' ' + std::to_string(clusterType[i][j][k]) + '\n';
+					myfile6 << line;
+				}
+			}
+
+		}
+
+		myfile6.close();
+	}
+
+
+	ofstream myfile8("DomainMatrix__p" + std::to_string(p) + "___pOx_" + std::to_string(pOx) + "___n" + std::to_string(n) + "___res__" + std::to_string(res) + "__num");// +std::to_string(samplingInter) + ".dat");
+	if (myfile8.is_open())
+	{
+		k = 14;
+		for (int i = 0; i < m; i = i + 1) {
+			line = ' ';
+				for (int j = 0; j < m; j = j + 1) {
+					line = line + std::to_string(extenDomain[i][j][k]) + ' ';
+
+				}
+			line = line + '\n';
+			myfile8 << line;
+		}
+
+	myfile8.close();
+	}*/
+    return 0;
+}
+
