@@ -1,4 +1,4 @@
-// CubicPercSimplified.cpp: определяет точку входа для консольного приложения.
+// CubicPercSimplified.cpp
 //
 
 #include "stdafx.h"
@@ -13,35 +13,35 @@
 #include <vector>
 using namespace std;
 string write_to_file="p MS MSEL Prob QoC";
-class Cluster// класс, используемый для разметки кластеров
+class Cluster// class used for cluster labeling
 {
 	// Access specifier 
 public:
 
 	// Data Members 
-	long int cluster_label; //переменная, которая хранит в себе уникальный идентификатор класса
-	vector<vector<long int>> vec_with_cluster_points; //вектор, хранящий в себе список точек кластера
-	long int k;//количество точек в кластере
-	double mean_distance_betw_pnts;//среднее расстояние между точками в кластере
+	long int cluster_label; //variable that stores unique cluster label
+	vector<vector<long int>> vec_with_cluster_points; //vector that keeps list of sites that belongs to cluster
+	long int k;//quantity of sites in the cluster
+	double mean_distance_betw_pnts;//mean distance between sites in the cluster
 
-	Cluster(int label) //конструктор кластера, требует только идентификатор класса
+	Cluster(int label) //cluster constructor (requires only cluster identifier)
 	{
 		this->cluster_label = label;
 		this->k = 0;
 	//	cout << "Cluster label is: " << std::to_string(cluster_label)+"\n";
 	}
 
-	void addPoint(int x, int y, int z) { //процедура добавления точки в кластер по её координатам в 3-D массиве
-		vector<long int> dummy; //каждая точка идёт как вектор
-		dummy.push_back(x); // компоненты вектора идут из i j k координат
+	void addPoint(int x, int y, int z) { //adds point (site) to cluster by its coordinates
+		vector<long int> dummy; //duumy for each point (site) that is vector by itself 
+		dummy.push_back(x); // point (sites) coordinates i j k
 		dummy.push_back(y);
 		dummy.push_back(z);
-		vec_with_cluster_points.push_back(dummy);//точка сгружается в вектор со списком точек
+		vec_with_cluster_points.push_back(dummy);//point goes to vector's list of points (sites)
 		this->k = k + 1;
 	}
 
-	double computeDistanceBetweenTwoPoints(int num1, int num2) {//расчет среднего расстояния между двумя точками в кластере
-		double dummy;//переменная суммирования
+	double computeDistanceBetweenTwoPoints(int num1, int num2) {//compute ,ean distance between pair of sites in cluster
+		double dummy;//variable for summing
 		vector<long int> dummy1;
 		vector<long int> dummy2;
 		dummy1 = this->vec_with_cluster_points[num1];
@@ -49,16 +49,16 @@ public:
 		dummy = pow((pow((dummy1[0] - dummy2[0]), 2) + pow((dummy1[1] - dummy2[1]), 2) + pow((dummy1[2] - dummy2[2]), 2)), (0.5));
 		return dummy;
 	}
-public: long int getSize() {//возвращает количество точек в кластере
+public: long int getSize() {//returns quantity of points (sites) in cluster
 		return this->k;
 	}
 
-	double computeMeanDistanceInCluster() {//расчет среднего расстояния между точками внутри кластера
-		double allDistances = 0;//сумма всех расстояний
-	//	int len = this->vec_with_cluster_points.size();//количество точек в кластере
-		int antiBinomial = 0;//счетчик количества пар
-		for (int i = 0; i < (this->k - 2); i++) {//точка номер 1 перебирается по всем имеющимся в кластере минус 1
-			for (int j = i + 1; j < this->k - 1; j++)//точка 2 по тем точкам, что правее точки 1
+	double computeMeanDistanceInCluster() {//compute mean distance between points in cluster
+		double allDistances = 0;//sum of distances between all pairs
+	//	int len = this->vec_with_cluster_points.size();//quantity of points in cluster
+		int antiBinomial = 0;//counter of pairs
+		for (int i = 0; i < (this->k - 2); i++) {//iterate first point in pair across all the points except the last one
+			for (int j = i + 1; j < this->k - 1; j++)//interat second point in pair across all the points that are "righter" that the 1st point
 			{
 				allDistances = allDistances + computeDistanceBetweenTwoPoints(i, j);
 				antiBinomial++;
@@ -76,7 +76,7 @@ class DomainClusters
 {
 public:
 vector<Cluster> internalClusterList;
-		void clearAndPrepare() { //процедура вайпа перед распознаванием
+		void clearAndPrepare() { //wipe befor reckognition
 			(this->internalClusterList).clear();
 			vector<Cluster>().swap(this->internalClusterList);
 			//(this->internalClusterList).shrink_to_fit();
@@ -85,9 +85,9 @@ vector<Cluster> internalClusterList;
 			internalClusterList.clear();
 			internalClusterList.shrink_to_fit();
 		}
-		void addPointToCluster(int k, int x, int y, int z) {//тестирование точки и внедрение в кластер
-			int dummyInt = 0;//переменная-детектор того, существует ли уже кластер с таким k
-			for (Cluster &dummy: this->internalClusterList) {//перебор уже имеющихся кластеров в векторе, нельзя ли к ним добавить новую точку
+		void addPointToCluster(int k, int x, int y, int z) {//testing point and introduce it to the cluster
+			int dummyInt = 0;//detector-variable if appropriate cluster already exists 
+			for (Cluster &dummy: this->internalClusterList) {//searching if it possible to add the point to already existing cluster
 				if (dummy.cluster_label==k)
 				{
 					dummy.addPoint(x,y,z);
@@ -95,24 +95,24 @@ vector<Cluster> internalClusterList;
 					break;
 				}
 			}
-			if (dummyInt == 0) {//если ни к одному кластеру новая точка не добавилась, создаем новый кластер
+			if (dummyInt == 0) {//if there is no existing cluster that can absorb the point, the new cluster is being created
 				Cluster novitchok = Cluster(k);
 				novitchok.addPoint(x, y, z);
 				internalClusterList.push_back(novitchok);
 			}
 		}
-		double getMeanSize() {//средний размер кластера
+		double getMeanSize() {//mean cluster size
 			double dummySum = 0;
-			for (Cluster &dummy : this->internalClusterList) {//перебор уже имеющихся кластеров в векторе
+			for (Cluster &dummy : this->internalClusterList) {//iterate across all the clusters in the domain
 				dummySum = dummySum + dummy.getSize();
 			}
 			dummySum = dummySum / internalClusterList.size();
 			return dummySum;
 		}
-		double probBelongToLargest() {//вероятность принадлежности точки наибольшему кластеру
-			double filled_cells=0;//общее количество заполненных точек в домене
-			double size = 0;//размер будущего наибольшего кластера
-			for (Cluster &dummy : internalClusterList) {//перебор уже имеющихся кластеров в векторе
+		double probBelongToLargest() {//probability that point (site) belongs to the largest cluster
+			double filled_cells=0;//whole quantity of occupied clusters in the domain 
+			double size = 0;//size of the foregoing largest cluster in system
+			for (Cluster &dummy : internalClusterList) {//iterate across existing clusters
 				filled_cells = filled_cells + dummy.getSize();
 				if (dummy.getSize() > size) {
 					size = dummy.getSize();
@@ -123,7 +123,7 @@ vector<Cluster> internalClusterList;
 		}
 
 
-		double getMeanSizeExclLargest() {//средний размер кластера, исключая наибольший кластер
+		double getMeanSizeExclLargest() {//mean cluster size, excluding largest
 			double dummySum = 0;
 			int dummySize = this->internalClusterList.size();
 			if (dummySize <= 1) {
