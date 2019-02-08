@@ -167,7 +167,7 @@ vector<Cluster> internalClusterList;
 };
 double averageVectorValue(vector<double> xx) {
 	double sum = 0;
-	for (const double &dummy : xx) {//перебор уже имеющихся кластеров в векторе
+	for (const double &dummy : xx) {//iterate over the clusters 
 		sum=sum+dummy;
 	}
 	sum  = sum/(double)xx.size();
@@ -175,7 +175,7 @@ double averageVectorValue(vector<double> xx) {
 }
 double averageVectorValue(vector<int> xx) {
 	double sum = 0;
-	for (const int &dummy : xx) {//перебор уже имеющихся кластеров в векторе
+	for (const int &dummy : xx) {//iterate over the clusters in vector
 		sum = sum +dummy;
 	}
 	sum = sum/(double)xx.size();
@@ -190,9 +190,9 @@ int main()
 
 	double p, pOx, dummy; string line;
 	int n, res, l, i, j, k, m, i1, j1, k1, iterFlag, samplingInter, count_filled;
-	p = 0.36;//вероятность заполнения
-	pOx = 0.0;//вероятность окисления
-	n = 25;//размер субячеек
+	p = 0.36;//probability of site occupation
+	pOx = 0.0;//probability of interface subcell turning to insulator
+	n = 25;//quantity of "big" cells per edge of cubic domain
 	res = 4;
 
 	ifstream inFile1;
@@ -251,15 +251,15 @@ int main()
 			}
 		};
 	}
-	m = m + 2;//костыыыыль
+	m = m + 2;//needed to prevent mess with boundary conditions
 	do {
 
 		for (samplingInter = 0; samplingInter < nSamples; samplingInter++) {
 			if (samplingInter % 5 == 0) {
 				cout << "\n p:"+std::to_string(p)+"   pOx:"+std::to_string(pOx)+"   sample:" + std::to_string(samplingInter);
 			}
-			//генерация начального массива
-			m = m - 2;//костыыыыль
+			//generation of initialdomain of "big" cells
+			m = m - 2;//needed to prevent mess with boundary conditions
 			for (int i = 0; i < n; i = i + 1) {
 				for (int j = 0; j < n; j = j + 1) {
 					for (int k = 0; k < n; k = k + 1) {
@@ -296,7 +296,7 @@ int main()
 					}
 				};
 			}
-			m = m + 2;//Вот это костыль, чтобы не переписывать код из предыдущей версии
+			m = m + 2;//Again, sort of antibugger
 			l = 1;
 			for (int i = 0; i < m; i = i + 1) {
 				for (int j = 0; j < m; j = j + 1) {
@@ -309,7 +309,7 @@ int main()
 								if (dummy < pOx) {
 									extenDomain[i][j][k] = 0;
 									clusterType[i][j][k] = 0;
-								}//непроводящий оксид!!! такая модель!
+								}//turn part of interface subcells to non-conducting media
 							}
 						}
 					}
@@ -375,7 +375,7 @@ int main()
 					}
 				}
 			}
-			current_domain_clusters.clear();//очистка вектора со списком кластеров данного домена
+			current_domain_clusters.clear();//clearing vector with the clusters of this particular domain sample
 			current_domain_clusters.shrink_to_fit();
 
 			DomainClusters currentDomain;
@@ -412,7 +412,7 @@ int main()
 		cout << "  MSEL:" + std::to_string(averageVectorValue(MSEL));
 		//cout << "     MD:"+ std::to_string(currentDomain.computeMeanDistanceInDomain());
 		cout << "  Prob: " + std::to_string(averageVectorValue(Prob));
-		//создание_кластеров   p MS MSEL Prob QoC
+		//creating_clusters   p MS MSEL Prob QoC
 
 		cout << "     QoC:" + std::to_string(QoC.size())+"\n";
 	
