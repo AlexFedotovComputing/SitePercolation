@@ -1,0 +1,2310 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 8.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       157,          7]
+NotebookDataLength[     85309,       2301]
+NotebookOptionsPosition[     79956,       2129]
+NotebookOutlinePosition[     80321,       2145]
+CellTagsIndexPosition[     80278,       2142]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["\<\
+Intro to the Hoshen-Kopelman Algorithm\
+\>", "Title",
+ CellChangeTimes->{{3.528685645562689*^9, 3.528685658238762*^9}, {
+  3.6168850010131025`*^9, 3.616885018119517*^9}, {3.616885062464115*^9, 
+  3.616885063579859*^9}}],
+
+Cell["Milan Cvitkovic", "Subtitle",
+ CellChangeTimes->{{3.528685661078815*^9, 3.528685670190152*^9}, 
+   3.6168849915207753`*^9}],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+A Manual Runthrough and Explanation of the Hoshen-Kopelman Algorithm\
+\>", "Section",
+ CellChangeTimes->{{3.528685932691036*^9, 3.528685947821867*^9}, {
+  3.528716132690588*^9, 3.528716136418644*^9}, {3.5287304536659946`*^9, 
+  3.5287304550539913`*^9}}],
+
+Cell["\<\
+We start with a percolated lattice, r, which has values of 0 for its \
+unoccupied sites and 1 for its occupied sites:\
+\>", "Text",
+ CellChangeTimes->{{3.528686214981351*^9, 3.5286862174136972`*^9}, {
+  3.5286863764170322`*^9, 3.528686397792387*^9}, {3.528730378299953*^9, 
+  3.528730428526375*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(", 
+   RowBox[{"r", "=", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"1", ",", "0", ",", "0", ",", "1"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"1", ",", "0", ",", "1", ",", "1"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"1", ",", "1", ",", "1", ",", "0"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"0", ",", "0", ",", "0", ",", "1"}], "}"}]}], "}"}]}], ")"}], 
+  " ", "//", "MatrixForm"}]], "Input",
+ CellChangeTimes->{{3.528686400245564*^9, 3.528686437433823*^9}, 
+   3.528713621138563*^9}],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {"1", "0", "0", "1"},
+     {"1", "0", "1", "1"},
+     {"1", "1", "1", "0"},
+     {"0", "0", "0", "1"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.528686437902367*^9, {3.528687023351944*^9, 3.5286870277740927`*^9}, {
+   3.52868715118454*^9, 3.528687177183753*^9}, {3.5287135439247637`*^9, 
+   3.5287135697215147`*^9}, 3.5287136215058537`*^9, 3.528713689026058*^9, {
+   3.52871469297246*^9, 3.528714731855404*^9}, {3.528715100400898*^9, 
+   3.5287151305229607`*^9}, {3.528715207156727*^9, 3.5287152329034348`*^9}, 
+   3.528715293330174*^9, 3.528715352259583*^9, {3.5287158735463123`*^9, 
+   3.528715892971675*^9}, 3.528731135320963*^9, 3.528732787335401*^9, 
+   3.528737253496029*^9}]
+}, Open  ]],
+
+Cell[TextData[{
+ "Next we create three lists derived from r:\nu, which is an exact copy of r \
+but padded with an extra column and row of zeros.  The extra zeros are there \
+because our algorithm will eventually be checking the sites above and to the \
+left of each site in r - putting these extra 0\[CloseCurlyQuote]s along the \
+top and side lets us avoid using If statements in our code to check if a site \
+actually has neighbors above or to the left of it.\nul, which is a blank list \
+the same size as u onto which we will be recording our labels\nulp, which is \
+a record keeping list.  The index of each value in ulp equals the cluster\
+\[CloseCurlyQuote]s label from the original run of the algorithm (1,2,3, \
+etc.), and each value represents the label that those clusters ",
+ StyleBox["should",
+  FontSlant->"Italic"],
+ " have once the algorithm is finished (this will make more sense as we go \
+through an example)."
+}], "Text",
+ CellChangeTimes->{{3.5286864501769857`*^9, 3.528686476046174*^9}, {
+  3.528729872032153*^9, 3.528729935780895*^9}, {3.5287299971879053`*^9, 
+  3.5287303281133957`*^9}, {3.528730436435937*^9, 3.528730443638082*^9}, {
+  3.528730909829056*^9, 3.528730991478304*^9}, {3.5287310244773207`*^9, 
+  3.5287310308208027`*^9}, {3.528731145385354*^9, 3.52873119477631*^9}, {
+  3.5287313034372663`*^9, 3.528731434625763*^9}, {3.528731546950859*^9, 
+  3.528731605684847*^9}, {3.528731663580998*^9, 3.528731735169281*^9}, {
+  3.5287318058809023`*^9, 3.528731807870886*^9}, {3.528731910644775*^9, 
+  3.5287319109716043`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(", 
+   RowBox[{"u", "=", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"0", ",", "0", ",", "0", ",", "0", ",", "0"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"0", ",", "1", ",", "0", ",", "0", ",", "1"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"0", ",", "1", ",", "0", ",", "1", ",", "1"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"0", ",", "1", ",", "1", ",", "1", ",", "0"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"0", ",", "0", ",", "0", ",", "0", ",", "1"}], "}"}]}], 
+     "}"}]}], ")"}], " ", "//", "MatrixForm"}]], "Input",
+ CellChangeTimes->{{3.528686481183975*^9, 3.528686532823577*^9}, 
+   3.528713636218327*^9}],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {"0", "0", "0", "0", "0"},
+     {"0", "1", "0", "0", "1"},
+     {"0", "1", "0", "1", "1"},
+     {"0", "1", "1", "1", "0"},
+     {"0", "0", "0", "0", "1"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.5286865331554527`*^9, 3.5286870290759077`*^9, {3.528687151267033*^9, 
+   3.528687177250287*^9}, {3.528713544757051*^9, 3.528713572025487*^9}, 
+   3.528713636791803*^9, 3.5287136898435802`*^9, {3.528714693038168*^9, 
+   3.528714731922042*^9}, {3.5287151004850807`*^9, 3.528715130588647*^9}, {
+   3.528715207237949*^9, 3.528715232969172*^9}, 3.52871529339715*^9, 
+   3.528715352325873*^9, {3.528715873612221*^9, 3.528715893036772*^9}, 
+   3.528731137523947*^9, 3.528731917714241*^9, 3.528732788053396*^9, 
+   3.528737253561965*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(", 
+   RowBox[{"ul", " ", "=", 
+    RowBox[{"u", " ", "/.", " ", 
+     RowBox[{"1", "\[Rule]", "0"}]}]}], ")"}], "//", "MatrixForm"}]], "Input",\
+
+ CellChangeTimes->{{3.528686539610366*^9, 3.528686566149623*^9}, {
+  3.5287136582005177`*^9, 3.528713661000065*^9}, {3.5287311146447897`*^9, 
+  3.52873112430023*^9}}],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {"0", "0", "0", "0", "0"},
+     {"0", "0", "0", "0", "0"},
+     {"0", "0", "0", "0", "0"},
+     {"0", "0", "0", "0", "0"},
+     {"0", "0", "0", "0", "0"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528686556616209*^9, 3.528686566979048*^9}, 
+   3.5286870302611113`*^9, {3.52868715130051*^9, 3.5286871772842493`*^9}, {
+   3.528713545891643*^9, 3.5287135738610563`*^9}, {3.528713663426813*^9, 
+   3.528713690644937*^9}, {3.5287146930752363`*^9, 3.528714731958735*^9}, {
+   3.5287151005224657`*^9, 3.5287151306233673`*^9}, {3.5287152072729588`*^9, 
+   3.528715233026141*^9}, 3.5287152934544363`*^9, 3.528715352359497*^9, {
+   3.528715873653118*^9, 3.5287158930736628`*^9}, 3.5287319196834173`*^9, 
+   3.5287327888710003`*^9, 3.528737253596232*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"ulp", "=", 
+  RowBox[{"{", "}"}]}]], "Input",
+ CellChangeTimes->{{3.528686573636846*^9, 3.528686576188785*^9}, {
+  3.528731127652416*^9, 3.528731127835761*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", "}"}]], "Output",
+ CellChangeTimes->{
+  3.528686576707459*^9, 3.528687031563682*^9, {3.528687151355443*^9, 
+   3.5286871773408213`*^9}, 3.528713554101184*^9, 3.528713584291057*^9, {
+   3.528713667347774*^9, 3.528713691362365*^9}, {3.52871469312969*^9, 
+   3.52871473201272*^9}, {3.528715100571787*^9, 3.528715130676627*^9}, {
+   3.528715207326285*^9, 3.5287152330772257`*^9}, 3.528715293503731*^9, 
+   3.5287153523912773`*^9, {3.5287158736861897`*^9, 3.528715893112013*^9}, 
+   3.528731921151*^9, 3.528732790204908*^9, 3.528737253628124*^9}]
+}, Open  ]],
+
+Cell["\<\
+Now we will manually run through the algorithm on a test cluster to better \
+see how it works.  We will be referencing the steps in the algorithm as \
+written in CSM.  Also, after each line we will display u, ul, and ulp for \
+reference.\
+\>", "Text",
+ CellChangeTimes->{{3.5286865803809853`*^9, 3.528686585554709*^9}, {
+  3.5286866702162447`*^9, 3.52868667826402*^9}, {3.528687041821486*^9, 
+  3.5286870572932053`*^9}, {3.528731932210457*^9, 3.528731947745509*^9}, {
+  3.528732023007493*^9, 3.528732038974534*^9}, {3.528732228809606*^9, 
+  3.528732252880281*^9}}],
+
+Cell["\<\
+The algorithm starts at the site u[[2,2]] (i.e., the top left site in r, \
+because we added an extra row and column of zeros to make u) and works its \
+way through the lattice left to right and downwards, just like reading a \
+book.  Checking u[[2,2]], we see that it is occupied and has no neighbors.  \
+Thus we use part 4.D of the algorithm to label ul[[2,2]] as cluster 1 (since \
+it\[CloseCurlyQuote]s the first cluster the algorithm has found), and append \
+that value to ulp:\
+\>", "Text",
+ CellChangeTimes->{{3.5286867891839247`*^9, 3.528686815924131*^9}, {
+  3.5286868884737473`*^9, 3.528686925744651*^9}, {3.52873195700355*^9, 
+  3.528732013607979*^9}, {3.528732052479144*^9, 3.5287322034109173`*^9}, {
+  3.528732277984679*^9, 3.528732280311483*^9}, {3.528732681593952*^9, 
+  3.528732778736474*^9}, {3.528732999874978*^9, 3.528733008337659*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ul", "[", 
+    RowBox[{"[", 
+     RowBox[{"2", ",", "2"}], "]"}], "]"}], "=", 
+   RowBox[{"1", "+", 
+    RowBox[{"Max", "[", "ul", "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"AppendTo", "[", 
+   RowBox[{"ulp", ",", " ", 
+    RowBox[{"Max", "[", "ul", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u", "//", "TableForm"}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", "TableForm"}], "\[IndentingNewLine]", "ulp"}], "Input",
+ CellChangeTimes->{{3.528686928396266*^9, 3.528687008504781*^9}, {
+  3.5286871723884077`*^9, 3.5286871735954237`*^9}, {3.528713675008453*^9, 
+  3.528713675136105*^9}, {3.528715240008397*^9, 3.5287152564155903`*^9}, {
+  3.5287153153916483`*^9, 3.528715319149827*^9}, {3.528732206404253*^9, 
+  3.528732219962605*^9}}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528687009636571*^9, 3.528687032613636*^9}, {
+   3.528687151407069*^9, 3.5286871773860188`*^9}, 3.5287135554537*^9, 
+   3.528713587611718*^9, {3.528713675591385*^9, 3.52871369206319*^9}, {
+   3.528714693181757*^9, 3.528714732064378*^9}, {3.528715100623537*^9, 
+   3.5287151307280207`*^9}, {3.528715207376416*^9, 3.52871525725206*^9}, {
+   3.528715293554593*^9, 3.528715319932211*^9}, 3.528715352425074*^9, {
+   3.52871587371832*^9, 3.528715893145175*^9}, {3.5287327821451683`*^9, 
+   3.5287327911062727`*^9}, 3.528737253661723*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528687009636571*^9, 3.528687032613636*^9}, {
+   3.528687151407069*^9, 3.5286871773860188`*^9}, 3.5287135554537*^9, 
+   3.528713587611718*^9, {3.528713675591385*^9, 3.52871369206319*^9}, {
+   3.528714693181757*^9, 3.528714732064378*^9}, {3.528715100623537*^9, 
+   3.5287151307280207`*^9}, {3.528715207376416*^9, 3.52871525725206*^9}, {
+   3.528715293554593*^9, 3.528715319932211*^9}, 3.528715352425074*^9, {
+   3.52871587371832*^9, 3.528715893145175*^9}, {3.5287327821451683`*^9, 
+   3.5287327911062727`*^9}, 3.5287372536643143`*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", "1", "}"}]], "Output",
+ CellChangeTimes->{{3.528687009636571*^9, 3.528687032613636*^9}, {
+   3.528687151407069*^9, 3.5286871773860188`*^9}, 3.5287135554537*^9, 
+   3.528713587611718*^9, {3.528713675591385*^9, 3.52871369206319*^9}, {
+   3.528714693181757*^9, 3.528714732064378*^9}, {3.528715100623537*^9, 
+   3.5287151307280207`*^9}, {3.528715207376416*^9, 3.52871525725206*^9}, {
+   3.528715293554593*^9, 3.528715319932211*^9}, 3.528715352425074*^9, {
+   3.52871587371832*^9, 3.528715893145175*^9}, {3.5287327821451683`*^9, 
+   3.5287327911062727`*^9}, 3.528737253666297*^9}]
+}, Open  ]],
+
+Cell["\<\
+Moving left, we ignore u[[2,3]] and u[[2,4]] because they are empty.  Then we \
+come to u[[2,5]], which is occupied.  Like u[[2,2]], u[[2,5]] is also has no \
+above or left neighbors, so the value of u1[[2,5]] is labeled as cluster 2 \
+(since it\[CloseCurlyQuote]s the second cluster the algorithm has found) and \
+we append this label to ulp:\
+\>", "Text",
+ CellChangeTimes->{{3.5286870790217953`*^9, 3.528687098467465*^9}, {
+  3.5287138155935*^9, 3.52871388710328*^9}, {3.528732811127655*^9, 
+  3.528732995273683*^9}, {3.528733043344365*^9, 3.528733052487887*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ul", "[", 
+    RowBox[{"[", 
+     RowBox[{"2", ",", "5"}], "]"}], "]"}], "=", 
+   RowBox[{"1", "+", 
+    RowBox[{"Max", "[", "ul", "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"AppendTo", "[", 
+   RowBox[{"ulp", ",", 
+    RowBox[{"Max", "[", "ul", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u", "//", "TableForm"}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", "TableForm"}], "\[IndentingNewLine]", "ulp"}], "Input",
+ CellChangeTimes->{{3.5286871007502413`*^9, 3.528687131180953*^9}, 
+   3.528715262418219*^9, 3.528715335327827*^9, {3.528733062068265*^9, 
+   3.528733072329054*^9}}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528687131785739*^9, 3.528687177420203*^9}, 
+   3.5287135568240147`*^9, 3.5287136934648*^9, {3.5287146932122993`*^9, 
+   3.528714732109417*^9}, {3.528715100668243*^9, 3.5287151307774887`*^9}, {
+   3.528715207409101*^9, 3.5287152331760817`*^9}, 3.528715293600135*^9, 
+   3.528715352459221*^9, {3.528715873765664*^9, 3.5287158931901627`*^9}, {
+   3.528733059856903*^9, 3.528733072602909*^9}, 3.528737253695582*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "2"},
+    {"0", "0", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528687131785739*^9, 3.528687177420203*^9}, 
+   3.5287135568240147`*^9, 3.5287136934648*^9, {3.5287146932122993`*^9, 
+   3.528714732109417*^9}, {3.528715100668243*^9, 3.5287151307774887`*^9}, {
+   3.528715207409101*^9, 3.5287152331760817`*^9}, 3.528715293600135*^9, 
+   3.528715352459221*^9, {3.528715873765664*^9, 3.5287158931901627`*^9}, {
+   3.528733059856903*^9, 3.528733072602909*^9}, 3.528737253698031*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "2"}], "}"}]], "Output",
+ CellChangeTimes->{{3.528687131785739*^9, 3.528687177420203*^9}, 
+   3.5287135568240147`*^9, 3.5287136934648*^9, {3.5287146932122993`*^9, 
+   3.528714732109417*^9}, {3.528715100668243*^9, 3.5287151307774887`*^9}, {
+   3.528715207409101*^9, 3.5287152331760817`*^9}, 3.528715293600135*^9, 
+   3.528715352459221*^9, {3.528715873765664*^9, 3.5287158931901627`*^9}, {
+   3.528733059856903*^9, 3.528733072602909*^9}, 3.528737253699966*^9}]
+}, Open  ]],
+
+Cell[TextData[{
+ "Continuing our manual scan, the next occupied site we hit is u[[3,2]].  \
+This site has one neighbor, the site u[[2,2]].  Since they are neighbors they \
+are obviously in the same cluster, so by step 4.E of the algorithm we give \
+u1[[3,2]] the same label as u1[[2,2]]:  Note that we do not append anything \
+to ulp in this case.  We only append the labels of ",
+ StyleBox["new",
+  FontSlant->"Italic"],
+ " clusters to ulp and u[[3,2]] is part of the same cluster as u[[2,2]]:"
+}], "Text",
+ CellChangeTimes->{{3.528713896334547*^9, 3.528713955540865*^9}, {
+  3.5287143545952663`*^9, 3.528714358976532*^9}, {3.5287330913853416`*^9, 
+  3.528733098399197*^9}, {3.5287331402382383`*^9, 3.528733271673263*^9}, {
+  3.528733599448249*^9, 3.5287336873567753`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ul", "[", 
+    RowBox[{"[", 
+     RowBox[{"3", ",", "2"}], "]"}], "]"}], "=", "1"}], ";", 
+  RowBox[{"(*", 
+   RowBox[{
+    RowBox[{"Note", ":", " ", 
+     RowBox[{
+     "it", " ", "so", " ", "happens", " ", "that", " ", "we", " ", "are", " ",
+       "labeling", " ", 
+      RowBox[{"ul", "[", 
+       RowBox[{"[", 
+        RowBox[{"3", ",", "2"}], "]"}], "]"}], " ", "as", " ", "1", " ", 
+      "here"}]}], ",", " ", 
+    RowBox[{
+     RowBox[{
+     "but", " ", "really", " ", "we", " ", "are", " ", "just", " ", "giving", 
+      " ", "it", " ", "the", " ", "same", " ", "label", " ", "as", " ", "its",
+       " ", "neighbor", " ", 
+      RowBox[{"u1", "[", 
+       RowBox[{"[", 
+        RowBox[{"2", ",", "2"}], "]"}], "]"}], " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+        "which", " ", "coincidentally", " ", "is", " ", "1", " ", "in", " ", 
+         "this", " ", "case"}], ")"}], ".", "  ", "The"}], " ", "label", " ", 
+      "of", " ", 
+      RowBox[{"ul", "[", 
+       RowBox[{"[", 
+        RowBox[{"3", ",", "2"}], "]"}], "]"}], " ", "label", " ", "could", 
+      " ", "theoretically", " ", "be", " ", "any", " ", "non"}], "-", 
+     RowBox[{"zero", " ", 
+      RowBox[{"integer", "."}]}]}]}], "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"u", "//", "TableForm"}]}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", "TableForm"}], "\[IndentingNewLine]", "ulp"}], "Input",
+ CellChangeTimes->{{3.528714364082943*^9, 3.528714388681699*^9}, {
+   3.528715222288698*^9, 3.528715225144476*^9}, 3.5287152658841457`*^9, 
+   3.5287153372632923`*^9, {3.528733122503975*^9, 3.5287331260393457`*^9}, {
+   3.5287333274902077`*^9, 3.528733509732175*^9}}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.52871439009953*^9, {3.528714693262972*^9, 3.5287147321781263`*^9}, {
+   3.528715100722229*^9, 3.528715130827361*^9}, {3.5287152074611893`*^9, 
+   3.528715233228064*^9}, 3.5287152936503563`*^9, 3.528715352509614*^9, {
+   3.5287158738149242`*^9, 3.52871589322392*^9}, 3.528733127106448*^9, 
+   3.528737253729157*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "2"},
+    {"0", "1", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.52871439009953*^9, {3.528714693262972*^9, 3.5287147321781263`*^9}, {
+   3.528715100722229*^9, 3.528715130827361*^9}, {3.5287152074611893`*^9, 
+   3.528715233228064*^9}, 3.5287152936503563`*^9, 3.528715352509614*^9, {
+   3.5287158738149242`*^9, 3.52871589322392*^9}, 3.528733127106448*^9, 
+   3.528737253731647*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "2"}], "}"}]], "Output",
+ CellChangeTimes->{
+  3.52871439009953*^9, {3.528714693262972*^9, 3.5287147321781263`*^9}, {
+   3.528715100722229*^9, 3.528715130827361*^9}, {3.5287152074611893`*^9, 
+   3.528715233228064*^9}, 3.5287152936503563`*^9, 3.528715352509614*^9, {
+   3.5287158738149242`*^9, 3.52871589322392*^9}, 3.528733127106448*^9, 
+   3.528737253733623*^9}]
+}, Open  ]],
+
+Cell["\<\
+The next occupied site we reach is u[[3,4]], which is modified in the same \
+way as u[[2,2]] and u[[2,5]] were and its label appended to ulp:\
+\>", "Text",
+ CellChangeTimes->{{3.5287143997191553`*^9, 3.528714418118731*^9}, {
+  3.528733526562416*^9, 3.528733593479418*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ul", "[", 
+    RowBox[{"[", 
+     RowBox[{"3", ",", "4"}], "]"}], "]"}], "=", 
+   RowBox[{"1", "+", 
+    RowBox[{"Max", "[", "ul", "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"AppendTo", "[", 
+   RowBox[{"ulp", ",", 
+    RowBox[{"Max", "[", "ul", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u", "//", "TableForm"}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", "TableForm"}], "\[IndentingNewLine]", "ulp"}], "Input",
+ CellChangeTimes->{{3.5287144201219063`*^9, 3.528714452566866*^9}, 
+   3.528715267857679*^9, 3.528715338999598*^9, {3.528733560947383*^9, 
+   3.528733571369747*^9}}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.528714453497445*^9, {3.528714693296671*^9, 3.5287147322123547`*^9}, {
+   3.5287151007721653`*^9, 3.528715130861266*^9}, {3.528715207505891*^9, 
+   3.528715233279458*^9}, 3.528715293705215*^9, 3.5287153525590553`*^9, {
+   3.5287158738657303`*^9, 3.5287158932613897`*^9}, 3.52873358768431*^9, 
+   3.5287372537617283`*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "2"},
+    {"0", "1", "0", "3", "0"},
+    {"0", "0", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.528714453497445*^9, {3.528714693296671*^9, 3.5287147322123547`*^9}, {
+   3.5287151007721653`*^9, 3.528715130861266*^9}, {3.528715207505891*^9, 
+   3.528715233279458*^9}, 3.528715293705215*^9, 3.5287153525590553`*^9, {
+   3.5287158738657303`*^9, 3.5287158932613897`*^9}, 3.52873358768431*^9, 
+   3.528737253764165*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "2", ",", "3"}], "}"}]], "Output",
+ CellChangeTimes->{
+  3.528714453497445*^9, {3.528714693296671*^9, 3.5287147322123547`*^9}, {
+   3.5287151007721653`*^9, 3.528715130861266*^9}, {3.528715207505891*^9, 
+   3.528715233279458*^9}, 3.528715293705215*^9, 3.5287153525590553`*^9, {
+   3.5287158738657303`*^9, 3.5287158932613897`*^9}, 3.52873358768431*^9, 
+   3.528737253766123*^9}]
+}, Open  ]],
+
+Cell[TextData[{
+ "The next occupied site we reach is u[[3,5]], where things get a bit more \
+tricky.  Both the above ",
+ StyleBox["and",
+  FontSlant->"Italic"],
+ " left neighbors of u[[3,5]] are occupied, so we have a choice of what to \
+label u[[3,5]].  The algorithm handles this by assigning u[[3,5]] the smaller \
+of the labels of its two neighbors.  In other words, u[[3,5]] is joined to \
+the cluster with the smaller label number.  More confusing, though, is what \
+we do with ulp.  The algorithm (very cleverly) has us take the larger of the \
+two neighbor\[CloseCurlyQuote]s label values (3 in this case), find the index \
+in ulp which has that same value (ulp[[3]] in this case), and change it to \
+the smaller of the two neighbor\[CloseCurlyQuote]s label values (2 in this \
+case, so we change u[[3]] from 3 to 2).  This, in essence, records the fact \
+that at the point u[[3,5]], clusters 3 and 2 are touching.  We will later use \
+this to relabel clusters 2 and 3 as the same cluster."
+}], "Text",
+ CellChangeTimes->{{3.528714464181275*^9, 3.528714527419305*^9}, {
+  3.528714593865994*^9, 3.528714633424274*^9}, {3.528733702524807*^9, 
+  3.528734035585896*^9}, {3.528734162566704*^9, 3.528734207172803*^9}, {
+  3.5287347636200533`*^9, 3.5287347772917757`*^9}, {3.528734837073805*^9, 
+  3.528735151927968*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ul", "[", 
+    RowBox[{"[", 
+     RowBox[{"3", ",", "5"}], "]"}], "]"}], "=", 
+   RowBox[{"Min", "[", 
+    RowBox[{
+     RowBox[{"ulp", "[", 
+      RowBox[{"[", "3", "]"}], "]"}], ",", 
+     RowBox[{"ulp", "[", 
+      RowBox[{"[", "2", "]"}], "]"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u", "//", "TableForm"}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", 
+  "TableForm"}], "\[IndentingNewLine]", "ulp", "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"ulp", "[", 
+    RowBox[{"[", 
+     RowBox[{"Max", "[", 
+      RowBox[{
+       RowBox[{"ulp", "[", 
+        RowBox[{"[", "3", "]"}], "]"}], ",", 
+       RowBox[{"ulp", "[", 
+        RowBox[{"[", "2", "]"}], "]"}]}], "]"}], "]"}], "]"}], "=", 
+   RowBox[{"Min", "[", 
+    RowBox[{
+     RowBox[{"ulp", "[", 
+      RowBox[{"[", "3", "]"}], "]"}], ",", 
+     RowBox[{"ulp", "[", 
+      RowBox[{"[", "2", "]"}], "]"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u", "//", "TableForm"}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", "TableForm"}], "\[IndentingNewLine]", "ulp"}], "Input",
+ CellChangeTimes->{{3.5287145294464693`*^9, 3.528714575244479*^9}, {
+  3.52871464014604*^9, 3.5287147182442217`*^9}, {3.528714777321858*^9, 
+  3.528714783798102*^9}, {3.5287152760664062`*^9, 3.528715280648593*^9}, {
+  3.528715340759951*^9, 3.528715342000616*^9}, {3.528734276103775*^9, 
+  3.5287342953153048`*^9}}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.528714732242403*^9, 3.528714784608664*^9, {3.528715100821919*^9, 
+   3.5287151309110613`*^9}, {3.5287152075613613`*^9, 3.528715233322432*^9}, 
+   3.528715293750764*^9, 3.5287153525967627`*^9, {3.528715873917509*^9, 
+   3.528715893306716*^9}, {3.5287342738413982`*^9, 3.528734295631082*^9}, 
+   3.528737253795294*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "2"},
+    {"0", "1", "0", "3", "2"},
+    {"0", "0", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.528714732242403*^9, 3.528714784608664*^9, {3.528715100821919*^9, 
+   3.5287151309110613`*^9}, {3.5287152075613613`*^9, 3.528715233322432*^9}, 
+   3.528715293750764*^9, 3.5287153525967627`*^9, {3.528715873917509*^9, 
+   3.528715893306716*^9}, {3.5287342738413982`*^9, 3.528734295631082*^9}, 
+   3.52873725379775*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "2", ",", "3"}], "}"}]], "Output",
+ CellChangeTimes->{
+  3.528714732242403*^9, 3.528714784608664*^9, {3.528715100821919*^9, 
+   3.5287151309110613`*^9}, {3.5287152075613613`*^9, 3.528715233322432*^9}, 
+   3.528715293750764*^9, 3.5287153525967627`*^9, {3.528715873917509*^9, 
+   3.528715893306716*^9}, {3.5287342738413982`*^9, 3.528734295631082*^9}, 
+   3.5287372537996798`*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.528714732242403*^9, 3.528714784608664*^9, {3.528715100821919*^9, 
+   3.5287151309110613`*^9}, {3.5287152075613613`*^9, 3.528715233322432*^9}, 
+   3.528715293750764*^9, 3.5287153525967627`*^9, {3.528715873917509*^9, 
+   3.528715893306716*^9}, {3.5287342738413982`*^9, 3.528734295631082*^9}, 
+   3.528737253801306*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "2"},
+    {"0", "1", "0", "3", "2"},
+    {"0", "0", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.528714732242403*^9, 3.528714784608664*^9, {3.528715100821919*^9, 
+   3.5287151309110613`*^9}, {3.5287152075613613`*^9, 3.528715233322432*^9}, 
+   3.528715293750764*^9, 3.5287153525967627`*^9, {3.528715873917509*^9, 
+   3.528715893306716*^9}, {3.5287342738413982`*^9, 3.528734295631082*^9}, 
+   3.528737253803258*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "2", ",", "2"}], "}"}]], "Output",
+ CellChangeTimes->{
+  3.528714732242403*^9, 3.528714784608664*^9, {3.528715100821919*^9, 
+   3.5287151309110613`*^9}, {3.5287152075613613`*^9, 3.528715233322432*^9}, 
+   3.528715293750764*^9, 3.5287153525967627`*^9, {3.528715873917509*^9, 
+   3.528715893306716*^9}, {3.5287342738413982`*^9, 3.528734295631082*^9}, 
+   3.528737253805204*^9}]
+}, Open  ]],
+
+Cell["\<\
+Continuing on, we get to u[[4,2]], which we modify by step 4.E:\
+\>", "Text",
+ CellChangeTimes->{{3.528714791050976*^9, 3.5287148082665577`*^9}, {
+  3.52871486178528*^9, 3.5287148651933193`*^9}, {3.528714909599946*^9, 
+  3.528714917167465*^9}, {3.528735811749597*^9, 3.5287358405786448`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ul", "[", 
+    RowBox[{"[", 
+     RowBox[{"4", ",", "2"}], "]"}], "]"}], "=", "1"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u", "//", "TableForm"}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", "TableForm"}], "\[IndentingNewLine]", "ulp"}], "Input",
+ CellChangeTimes->{{3.5287148227092743`*^9, 3.528714833892186*^9}, 
+   3.528715283072379*^9, 3.528715344103196*^9, {3.528735844956792*^9, 
+   3.528735849059594*^9}}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.528714838944901*^9, {3.5287151008685083`*^9, 3.5287151309572687`*^9}, {
+   3.5287152076055727`*^9, 3.528715233378598*^9}, 3.528715293800893*^9, 
+   3.528715352643402*^9, {3.52871587396595*^9, 3.528715893357492*^9}, {
+   3.528735842794382*^9, 3.5287358494007072`*^9}, 3.52873725382898*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "2"},
+    {"0", "1", "0", "3", "2"},
+    {"0", "1", "0", "0", "0"},
+    {"0", "0", "0", "0", "0"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.528714838944901*^9, {3.5287151008685083`*^9, 3.5287151309572687`*^9}, {
+   3.5287152076055727`*^9, 3.528715233378598*^9}, 3.528715293800893*^9, 
+   3.528715352643402*^9, {3.52871587396595*^9, 3.528715893357492*^9}, {
+   3.528735842794382*^9, 3.5287358494007072`*^9}, 3.5287372538314047`*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "2", ",", "2"}], "}"}]], "Output",
+ CellChangeTimes->{
+  3.528714838944901*^9, {3.5287151008685083`*^9, 3.5287151309572687`*^9}, {
+   3.5287152076055727`*^9, 3.528715233378598*^9}, 3.528715293800893*^9, 
+   3.528715352643402*^9, {3.52871587396595*^9, 3.528715893357492*^9}, {
+   3.528735842794382*^9, 3.5287358494007072`*^9}, 3.528737253833333*^9}]
+}, Open  ]],
+
+Cell["\<\
+We do the same thing with u[[4,3]]:\
+\>", "Text",
+ CellChangeTimes->{{3.528714855545216*^9, 3.528714859729073*^9}, {
+  3.528714919111432*^9, 3.528714931246912*^9}, {3.528735866449654*^9, 
+  3.528735873921577*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ul", "[", 
+    RowBox[{"[", 
+     RowBox[{"4", ",", "3"}], "]"}], "]"}], "=", "1"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u", "//", "TableForm"}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", "TableForm"}], "\[IndentingNewLine]", "ulp"}], "Input",
+ CellChangeTimes->{{3.528714847039226*^9, 3.528714849406736*^9}, {
+   3.5287149329934196`*^9, 3.5287149409847927`*^9}, 3.528715285040209*^9, 
+   3.5287153457910337`*^9, {3.5287358759877996`*^9, 3.5287358804189577`*^9}}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.5287149418946457`*^9, {3.528715100922462*^9, 3.52871513101299*^9}, {
+   3.528715207660226*^9, 3.528715233423026*^9}, 3.528715293838201*^9, 
+   3.5287153526803207`*^9, {3.5287158740025187`*^9, 3.528715893394796*^9}, 
+   3.528735881108261*^9, 3.528737253862426*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "2"},
+    {"0", "1", "0", "3", "2"},
+    {"0", "1", "1", "0", "0"},
+    {"0", "0", "0", "0", "0"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.5287149418946457`*^9, {3.528715100922462*^9, 3.52871513101299*^9}, {
+   3.528715207660226*^9, 3.528715233423026*^9}, 3.528715293838201*^9, 
+   3.5287153526803207`*^9, {3.5287158740025187`*^9, 3.528715893394796*^9}, 
+   3.528735881108261*^9, 3.52873725386481*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "2", ",", "2"}], "}"}]], "Output",
+ CellChangeTimes->{
+  3.5287149418946457`*^9, {3.528715100922462*^9, 3.52871513101299*^9}, {
+   3.528715207660226*^9, 3.528715233423026*^9}, 3.528715293838201*^9, 
+   3.5287153526803207`*^9, {3.5287158740025187`*^9, 3.528715893394796*^9}, 
+   3.528735881108261*^9, 3.528737253866714*^9}]
+}, Open  ]],
+
+Cell["\<\
+Now at u[[4,4]] we once again need to use step 4.F as we did with u[[3,5]], \
+changing ul[[4,4]] to the max label value of its neighbors and changing the \
+larger label value in ulp to the lower neighbor\[CloseCurlyQuote]s label \
+value:\
+\>", "Text",
+ CellChangeTimes->{{3.5287149718538218`*^9, 3.5287150066848793`*^9}, {
+  3.5287359001209393`*^9, 3.528735999589834*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ul", "[", 
+    RowBox[{"[", 
+     RowBox[{"4", ",", "4"}], "]"}], "]"}], "=", 
+   RowBox[{"Min", "[", 
+    RowBox[{
+     RowBox[{"ulp", "[", 
+      RowBox[{"[", "1", "]"}], "]"}], ",", 
+     RowBox[{"ulp", "[", 
+      RowBox[{"[", "3", "]"}], "]"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"ulp", "[", 
+    RowBox[{"[", 
+     RowBox[{"Max", "[", 
+      RowBox[{
+       RowBox[{"ulp", "[", 
+        RowBox[{"[", "1", "]"}], "]"}], ",", 
+       RowBox[{"ulp", "[", 
+        RowBox[{"[", "3", "]"}], "]"}]}], "]"}], "]"}], "]"}], "=", 
+   RowBox[{"Min", "[", 
+    RowBox[{
+     RowBox[{"ulp", "[", 
+      RowBox[{"[", "1", "]"}], "]"}], ",", 
+     RowBox[{"ulp", "[", 
+      RowBox[{"[", "3", "]"}], "]"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u", "//", "TableForm"}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", "TableForm"}], "\[IndentingNewLine]", "ulp"}], "Input",
+ CellChangeTimes->{{3.5287150239019117`*^9, 3.5287151285564337`*^9}, 
+   3.528715286873557*^9, 3.5287158870474367`*^9, {3.5287360025539503`*^9, 
+   3.528736023670802*^9}}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528715067423361*^9, 3.528715131044381*^9}, {
+   3.528715207711721*^9, 3.5287152334761868`*^9}, 3.528715293870453*^9, 
+   3.5287153527260923`*^9, {3.528715874048647*^9, 3.5287158934276953`*^9}, 
+   3.5287360242592697`*^9, 3.528737253896143*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "2"},
+    {"0", "1", "0", "3", "2"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "0"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528715067423361*^9, 3.528715131044381*^9}, {
+   3.528715207711721*^9, 3.5287152334761868`*^9}, 3.528715293870453*^9, 
+   3.5287153527260923`*^9, {3.528715874048647*^9, 3.5287158934276953`*^9}, 
+   3.5287360242592697`*^9, 3.52873725389853*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "1", ",", "2"}], "}"}]], "Output",
+ CellChangeTimes->{{3.528715067423361*^9, 3.528715131044381*^9}, {
+   3.528715207711721*^9, 3.5287152334761868`*^9}, 3.528715293870453*^9, 
+   3.5287153527260923`*^9, {3.528715874048647*^9, 3.5287158934276953`*^9}, 
+   3.5287360242592697`*^9, 3.528737253900441*^9}]
+}, Open  ]],
+
+Cell["\<\
+Now, reaching u[[5,5]], we need to change u1[[5,5]] by the rules of 4.D:\
+\>", "Text",
+ CellChangeTimes->{{3.528715144984518*^9, 3.528715172455695*^9}, {
+  3.528736052660286*^9, 3.528736065459774*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ul", "[", 
+    RowBox[{"[", 
+     RowBox[{"5", ",", "5"}], "]"}], "]"}], "=", 
+   RowBox[{"1", "+", 
+    RowBox[{"Max", "[", "ul", "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"AppendTo", "[", 
+   RowBox[{"ulp", ",", 
+    RowBox[{"Max", "[", "ul", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u", "//", "TableForm"}], "\[IndentingNewLine]", 
+ RowBox[{"ul", "//", "TableForm"}], "\[IndentingNewLine]", "ulp"}], "Input",
+ CellChangeTimes->{{3.5287151755628757`*^9, 3.52871520498498*^9}, 
+   3.5287152889847803`*^9, 3.528715347287333*^9, {3.528736069718032*^9, 
+   3.528736079957178*^9}}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "1"},
+    {"0", "1", "0", "1", "1"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "1"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528715874085701*^9, 3.528715893475649*^9}, 
+   3.528736081917054*^9, 3.528737253929027*^9}],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {"0", "0", "0", "0", "0"},
+    {"0", "1", "0", "0", "2"},
+    {"0", "1", "0", "3", "2"},
+    {"0", "1", "1", "1", "0"},
+    {"0", "0", "0", "0", "4"}
+   },
+   GridBoxAlignment->{
+    "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+     "RowsIndexed" -> {}},
+   GridBoxSpacings->{"Columns" -> {
+       Offset[0.27999999999999997`], {
+        Offset[2.0999999999999996`]}, 
+       Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+       Offset[0.2], {
+        Offset[0.4]}, 
+       Offset[0.2]}, "RowsIndexed" -> {}}],
+  Function[BoxForm`e$, 
+   TableForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528715874085701*^9, 3.528715893475649*^9}, 
+   3.528736081917054*^9, 3.528737253931424*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "1", ",", "2", ",", "4"}], "}"}]], "Output",
+ CellChangeTimes->{{3.528715874085701*^9, 3.528715893475649*^9}, 
+   3.528736081917054*^9, 3.528737253933339*^9}]
+}, Open  ]],
+
+Cell["\<\
+Now we have a differentiated list of clusters in u1, but there is still a \
+problem because we have adjacent clusters which are not labeled as the same \
+cluster.  Luckily we have been keeping track of this with u1p, which tells us \
+which clusters are adjacent to each other.  We can transform ulp into a \
+series of transformations and then apply them to u1 to get a properly labeled \
+cluster:\
+\>", "Text",
+ CellChangeTimes->{{3.528715456327353*^9, 3.528715525100955*^9}, {
+  3.5287157042880497`*^9, 3.5287157918689013`*^9}, {3.528736102038464*^9, 
+  3.528736171624703*^9}}],
+
+Cell["\<\
+Changing ulp into a series of transformations:\
+\>", "Text",
+ CellChangeTimes->{{3.528736174512286*^9, 3.5287361817041883`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Thread", "[", 
+  RowBox[{
+   RowBox[{"Range", "[", 
+    RowBox[{"Length", "[", "ulp", "]"}], "]"}], "\[Rule]", "ulp"}], 
+  "]"}]], "Input",
+ CellChangeTimes->{{3.528715792823511*^9, 3.528715809349518*^9}, {
+  3.528736184210355*^9, 3.528736186593794*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{"1", "\[Rule]", "1"}], ",", 
+   RowBox[{"2", "\[Rule]", "1"}], ",", 
+   RowBox[{"3", "\[Rule]", "2"}], ",", 
+   RowBox[{"4", "\[Rule]", "4"}]}], "}"}]], "Output",
+ CellChangeTimes->{
+  3.5287158099649*^9, {3.528715874169972*^9, 3.528715893561534*^9}, 
+   3.5287361988672867`*^9, 3.528737253962254*^9}]
+}, Open  ]],
+
+Cell["\<\
+Now we can apply these transformation rules to u1 and get a correctly labeled \
+cluster:\
+\>", "Text",
+ CellChangeTimes->{{3.528716015719859*^9, 3.5287160310854816`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(", 
+   RowBox[{"ul", " ", "//.", " ", 
+    RowBox[{"Thread", "[", 
+     RowBox[{
+      RowBox[{"Range", "[", 
+       RowBox[{"Length", "[", "ulp", "]"}], "]"}], "\[Rule]", "ulp"}], 
+     "]"}]}], ")"}], "  ", "//", "MatrixForm"}]], "Input",
+ CellChangeTimes->{{3.528716040362083*^9, 3.5287160699904947`*^9}, {
+  3.528736192627063*^9, 3.528736196986435*^9}}],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {"0", "0", "0", "0", "0"},
+     {"0", "1", "0", "0", "1"},
+     {"0", "1", "0", "1", "1"},
+     {"0", "1", "1", "1", "0"},
+     {"0", "0", "0", "0", "4"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{3.5287160707850943`*^9, 3.52873620344105*^9, 
+  3.528737253995723*^9}]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+Implementing Code for the Algorithm\
+\>", "Section",
+ CellChangeTimes->{{3.528716123996801*^9, 3.5287161482901707`*^9}}],
+
+Cell["\<\
+Now that we\[CloseCurlyQuote]ve seen a step by step example, we can put all \
+these steps together in code:\
+\>", "Text",
+ CellChangeTimes->{{3.5287160802279882`*^9, 3.5287160926355867`*^9}}],
+
+Cell["\<\
+First writing code to create our list r:\
+\>", "Text",
+ CellChangeTimes->{{3.528716153098053*^9, 3.528716169273356*^9}, {
+  3.5287163076215887`*^9, 3.5287163098529167`*^9}}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"AddZeros", "[", "w_", "]"}], ":=", 
+   RowBox[{"Prepend", "[", 
+    RowBox[{"w", ",", 
+     RowBox[{"Table", "[", 
+      RowBox[{"0", ",", 
+       RowBox[{"{", 
+        RowBox[{"Length", "[", 
+         RowBox[{"w", "[", 
+          RowBox[{"[", "1", "]"}], "]"}], "]"}], "}"}]}], "]"}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"u", "=", 
+   RowBox[{"Transpose", "[", 
+    RowBox[{"AddZeros", "[", 
+     RowBox[{"Transpose", "[", 
+      RowBox[{"AddZeros", "[", "r", "]"}], "]"}], "]"}], "]"}]}], 
+  ";"}]}], "Input",
+ CellChangeTimes->{{3.528716171932313*^9, 3.528716249729533*^9}, {
+  3.528716281920794*^9, 3.528716304496121*^9}, {3.528736523049202*^9, 
+  3.528736523096963*^9}, {3.528736671195561*^9, 3.528736700334206*^9}}],
+
+Cell["Now creating u1 and u1p:", "Text",
+ CellChangeTimes->{{3.528716322716535*^9, 3.5287163269004107`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"u1", " ", "=", " ", 
+   RowBox[{"u", " ", "/.", " ", 
+    RowBox[{"1", "\[Rule]", "0"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"u1p", "=", 
+  RowBox[{"{", "}"}]}]}], "Input",
+ CellChangeTimes->{{3.5287163281010323`*^9, 3.528716339670104*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", "}"}]], "Output",
+ CellChangeTimes->{3.5287372540622597`*^9}]
+}, Open  ]],
+
+Cell["\<\
+Now we are going to encapsulate all the different checks from our algorithm \
+into one long Which loop.  The first test deals with the case when both \
+neighbors are occupied, the second and third tests deal with the cases when \
+just one neighbor is occupied, and the last test deals with when no neighbors \
+are occupied (and we need to label a new cluster):\
+\>", "Text",
+ CellChangeTimes->{{3.528736715314069*^9, 3.528736785197958*^9}, {
+  3.528736827821274*^9, 3.528736846483879*^9}, {3.5287368798671207`*^9, 
+  3.528736895946554*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Which", "[", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"u", "[", 
+      RowBox[{"[", 
+       RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", "1"}], " ",
+     "&&", " ", 
+    RowBox[{"uup", " ", "==", " ", "1"}], " ", "&&", " ", "\n", "      ", 
+    RowBox[{"uback", " ", "==", " ", "1"}], " ", "&&", " ", 
+    RowBox[{"ulup", " ", "=!=", " ", "ulback"}]}], ",", " ", "\n", "  \t  ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"ul", "[", 
+      RowBox[{"[", 
+       RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", 
+     RowBox[{"Min", "[", 
+      RowBox[{
+       RowBox[{"ulp", "[", 
+        RowBox[{"[", "ulback", "]"}], "]"}], ",", " ", 
+       RowBox[{"ulp", "[", 
+        RowBox[{"[", "ulup", "]"}], "]"}]}], " ", "]"}]}], ";", " ", "\n", 
+    " \t  ", 
+    RowBox[{
+     RowBox[{"ulp", "[", 
+      RowBox[{"[", 
+       RowBox[{"Max", "[", 
+        RowBox[{
+         RowBox[{"ulp", "[", 
+          RowBox[{"[", "ulback", "]"}], "]"}], ",", " ", "\n", " \t    ", 
+         RowBox[{"ulp", "[", 
+          RowBox[{"[", "ulup", "]"}], "]"}]}], "]"}], " ", "]"}], "]"}], " ", 
+     "=", " ", 
+     RowBox[{"Min", "[", 
+      RowBox[{
+       RowBox[{"ulp", "[", 
+        RowBox[{"[", "ulback", "]"}], "]"}], ",", " ", 
+       RowBox[{"ulp", "[", 
+        RowBox[{"[", "ulup", "]"}], "]"}]}], "]"}]}]}], ",", 
+   "                                     \t", "\n", "   \t\t", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"u", "[", 
+      RowBox[{"[", 
+       RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", "1"}], " ",
+     "&&", " ", 
+    RowBox[{"uup", " ", "==", " ", "1"}]}], ",", " ", "\n", "   \t\t", 
+   RowBox[{
+    RowBox[{"ul", "[", 
+     RowBox[{"[", 
+      RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", "ulup"}], 
+   ",", "\n", "      \t", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"u", "[", 
+      RowBox[{"[", 
+       RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", "1"}], " ",
+     "&&", " ", 
+    RowBox[{"uback", " ", "==", " ", "1"}]}], ",", " ", "\n", "      \t", 
+   RowBox[{
+    RowBox[{"ul", "[", 
+     RowBox[{"[", 
+      RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", "ulback"}], 
+   ",", "\n", " \t\t", 
+   RowBox[{
+    RowBox[{"u", "[", 
+     RowBox[{"[", 
+      RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", "1"}], ",", 
+   " ", "\n", "        ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"ul", "[", 
+      RowBox[{"[", 
+       RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{"Max", "[", "ul", "]"}], " ", "+", " ", "1"}]}], ";", " ", 
+    RowBox[{"AppendTo", "[", 
+     RowBox[{"ulp", ",", " ", 
+      RowBox[{"Max", "[", "ul", "]"}]}], "]"}]}]}], " ", "\n", " \t", 
+  "]"}]], "Input",
+ CellChangeTimes->{{3.528736753986197*^9, 3.528736756191099*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"Part", "::", "partw"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Part \[NoBreak]\\!\\(10\\)\[NoBreak] of \
+\[NoBreak]\\!\\({\\(\\({0, 0, 0, 0, 0}\\)\\), \\(\\({0, 1, 0, 0, 1}\\)\\), \
+\\(\\({0, 1, 0, 1, 1}\\)\\), \\(\\({0, 1, 1, 1, 0}\\)\\), \\(\\({0, 0, 0, 0, \
+1}\\)\\)}\\)\[NoBreak] does not exist. \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/message/General/partw\\\", \
+ButtonNote -> \\\"Part::partw\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.528737254096257*^9}],
+
+Cell[BoxData[
+ RowBox[{"Which", "[", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"0", ",", "0", ",", "0", ",", "0", ",", "0"}], "}"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"0", ",", "1", ",", "0", ",", "0", ",", "1"}], "}"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"0", ",", "1", ",", "0", ",", "1", ",", "1"}], "}"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"0", ",", "1", ",", "1", ",", "1", ",", "0"}], "}"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"0", ",", "0", ",", "0", ",", "0", ",", "1"}], "}"}]}], 
+       "}"}], "\[LeftDoubleBracket]", 
+      RowBox[{"10", ",", "11"}], "\[RightDoubleBracket]"}], "\[Equal]", "1"}],
+     "&&", 
+    RowBox[{"uup", "\[Equal]", "1"}], "&&", 
+    RowBox[{"uback", "\[Equal]", "1"}]}], ",", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"ul", "\[LeftDoubleBracket]", 
+      RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "=", 
+     RowBox[{"Min", "[", 
+      RowBox[{
+       RowBox[{
+       "ulp", "\[LeftDoubleBracket]", "ulback", "\[RightDoubleBracket]"}], 
+       ",", 
+       RowBox[{
+       "ulp", "\[LeftDoubleBracket]", "ulup", "\[RightDoubleBracket]"}]}], 
+      "]"}]}], ";", 
+    RowBox[{
+     RowBox[{"ulp", "\[LeftDoubleBracket]", 
+      RowBox[{"Max", "[", 
+       RowBox[{
+        RowBox[{
+        "ulp", "\[LeftDoubleBracket]", "ulback", "\[RightDoubleBracket]"}], 
+        ",", 
+        RowBox[{
+        "ulp", "\[LeftDoubleBracket]", "ulup", "\[RightDoubleBracket]"}]}], 
+       "]"}], "\[RightDoubleBracket]"}], "=", 
+     RowBox[{"Min", "[", 
+      RowBox[{
+       RowBox[{
+       "ulp", "\[LeftDoubleBracket]", "ulback", "\[RightDoubleBracket]"}], 
+       ",", 
+       RowBox[{
+       "ulp", "\[LeftDoubleBracket]", "ulup", "\[RightDoubleBracket]"}]}], 
+      "]"}]}]}], ",", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"u", "\[LeftDoubleBracket]", 
+      RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "\[Equal]", "1"}], "&&", 
+    RowBox[{"uup", "\[Equal]", "1"}]}], ",", 
+   RowBox[{
+    RowBox[{"ul", "\[LeftDoubleBracket]", 
+     RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "=", "ulup"}], ",", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"u", "\[LeftDoubleBracket]", 
+      RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "\[Equal]", "1"}], "&&", 
+    RowBox[{"uback", "\[Equal]", "1"}]}], ",", 
+   RowBox[{
+    RowBox[{"ul", "\[LeftDoubleBracket]", 
+     RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "=", "ulback"}], ",", 
+   RowBox[{
+    RowBox[{"u", "\[LeftDoubleBracket]", 
+     RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "\[Equal]", "1"}], 
+   ",", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"ul", "\[LeftDoubleBracket]", 
+      RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "=", 
+     RowBox[{
+      RowBox[{"Max", "[", "ul", "]"}], "+", "1"}]}], ";", 
+    RowBox[{"AppendTo", "[", 
+     RowBox[{"ulp", ",", 
+      RowBox[{"Max", "[", "ul", "]"}]}], "]"}]}]}], "]"}]], "Output",
+ CellChangeTimes->{3.528737254103148*^9}]
+}, Open  ]],
+
+Cell["\<\
+We can have Mathematica repeat these checks for our entire lattice using a Do \
+loop,which will output the modified ul list:\
+\>", "Text",
+ CellChangeTimes->{{3.528736901022735*^9, 3.528736962672724*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Do", "[", " ", "\n", 
+  RowBox[{
+   RowBox[{"Which", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"u", "[", 
+        RowBox[{"[", 
+         RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", "1"}], 
+      " ", "&&", " ", 
+      RowBox[{"uup", " ", "==", " ", "1"}], " ", "&&", " ", "\n", "       ", 
+      RowBox[{"uback", " ", "==", " ", "1"}], " ", "&&", " ", 
+      RowBox[{"ulup", " ", "=!=", " ", "ulback"}]}], ",", " ", "\n", "  \t", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"ul", "[", 
+        RowBox[{"[", 
+         RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", 
+       RowBox[{"Min", "[", 
+        RowBox[{
+         RowBox[{"ulp", "[", 
+          RowBox[{"[", "ulback", "]"}], "]"}], ",", " ", 
+         RowBox[{"ulp", "[", 
+          RowBox[{"[", "ulup", "]"}], "]"}]}], " ", "]"}]}], ";", " ", "\n", 
+      " \t", 
+      RowBox[{
+       RowBox[{"ulp", "[", 
+        RowBox[{"[", 
+         RowBox[{"Max", "[", 
+          RowBox[{
+           RowBox[{"ulp", "[", 
+            RowBox[{"[", "ulback", "]"}], "]"}], ",", " ", 
+           RowBox[{"ulp", "[", 
+            RowBox[{"[", "ulup", "]"}], "]"}]}], "]"}], " ", "]"}], "]"}], 
+       " ", "=", " ", "\n", " \t                  ", 
+       RowBox[{"Min", "[", 
+        RowBox[{
+         RowBox[{"ulp", "[", 
+          RowBox[{"[", "ulback", "]"}], "]"}], ",", " ", 
+         RowBox[{"ulp", "[", 
+          RowBox[{"[", "ulup", "]"}], "]"}]}], "]"}]}]}], ",", 
+     "                                     \t", "\n", "   \t", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"u", "[", 
+        RowBox[{"[", 
+         RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", "1"}], 
+      " ", "&&", " ", 
+      RowBox[{"uup", " ", "==", " ", "1"}]}], ",", " ", "\n", "   \t", 
+     RowBox[{
+      RowBox[{"ul", "[", 
+       RowBox[{"[", 
+        RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", "ulup"}], 
+     ",", "\n", "    ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"u", "[", 
+        RowBox[{"[", 
+         RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", "1"}], 
+      " ", "&&", " ", 
+      RowBox[{"uback", " ", "==", " ", "1"}]}], ",", " ", "\n", "    ", 
+     RowBox[{
+      RowBox[{"ul", "[", 
+       RowBox[{"[", 
+        RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", "ulback"}],
+      ",", "\n", " \t", 
+     RowBox[{
+      RowBox[{"u", "[", 
+       RowBox[{"[", 
+        RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", "1"}], 
+     ",", " ", "\n", " \t", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"ul", "[", 
+        RowBox[{"[", 
+         RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", 
+       RowBox[{
+        RowBox[{"Max", "[", "ul", "]"}], " ", "+", " ", "1"}]}], ";", " ", 
+      RowBox[{"AppendTo", "[", 
+       RowBox[{"ulp", ",", " ", 
+        RowBox[{"Max", "[", "ul", "]"}]}], "]"}]}]}], " ", "\n", " \t   ", 
+    "]"}], ",", " ", "\n", " ", 
+   RowBox[{"{", 
+    RowBox[{"q", ",", " ", "2", ",", 
+     RowBox[{"n", "+", "1"}]}], "}"}], ",", " ", 
+   RowBox[{"{", 
+    RowBox[{"k", ",", " ", "2", ",", " ", 
+     RowBox[{"m", "+", "1"}]}], "}"}]}], "\n", "  ", "]"}]], "Input",
+ CellChangeTimes->{{3.5287369305718718`*^9, 3.528736930573217*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"Do", "::", "iterb"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Iterator \[NoBreak]\\!\\({q, 2, \\(\\(n + 1\\)\\)}\\)\
+\[NoBreak] does not have appropriate bounds. \\!\\(\\*ButtonBox[\\\"\
+\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/General/iterb\\\", ButtonNote -> \
+\\\"Do::iterb\\\"]\\)\"\>"}]], "Message", "MSG",
+ CellChangeTimes->{3.528737254136653*^9}],
+
+Cell[BoxData[
+ RowBox[{"Do", "[", 
+  RowBox[{
+   RowBox[{"Which", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"u", "\[LeftDoubleBracket]", 
+        RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "\[Equal]", "1"}],
+       "&&", 
+      RowBox[{"uup", "\[Equal]", "1"}], "&&", 
+      RowBox[{"uback", "\[Equal]", "1"}], "&&", 
+      RowBox[{"ulup", "=!=", "ulback"}]}], ",", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"ul", "\[LeftDoubleBracket]", 
+        RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "=", 
+       RowBox[{"Min", "[", 
+        RowBox[{
+         RowBox[{
+         "ulp", "\[LeftDoubleBracket]", "ulback", "\[RightDoubleBracket]"}], 
+         ",", 
+         RowBox[{
+         "ulp", "\[LeftDoubleBracket]", "ulup", "\[RightDoubleBracket]"}]}], 
+        "]"}]}], ";", 
+      RowBox[{
+       RowBox[{"ulp", "\[LeftDoubleBracket]", 
+        RowBox[{"Max", "[", 
+         RowBox[{
+          RowBox[{
+          "ulp", "\[LeftDoubleBracket]", "ulback", "\[RightDoubleBracket]"}], 
+          ",", 
+          RowBox[{
+          "ulp", "\[LeftDoubleBracket]", "ulup", "\[RightDoubleBracket]"}]}], 
+         "]"}], "\[RightDoubleBracket]"}], "=", 
+       RowBox[{"Min", "[", 
+        RowBox[{
+         RowBox[{
+         "ulp", "\[LeftDoubleBracket]", "ulback", "\[RightDoubleBracket]"}], 
+         ",", 
+         RowBox[{
+         "ulp", "\[LeftDoubleBracket]", "ulup", "\[RightDoubleBracket]"}]}], 
+        "]"}]}]}], ",", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"u", "\[LeftDoubleBracket]", 
+        RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "\[Equal]", "1"}],
+       "&&", 
+      RowBox[{"uup", "\[Equal]", "1"}]}], ",", 
+     RowBox[{
+      RowBox[{"ul", "\[LeftDoubleBracket]", 
+       RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "=", "ulup"}], ",", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"u", "\[LeftDoubleBracket]", 
+        RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "\[Equal]", "1"}],
+       "&&", 
+      RowBox[{"uback", "\[Equal]", "1"}]}], ",", 
+     RowBox[{
+      RowBox[{"ul", "\[LeftDoubleBracket]", 
+       RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "=", "ulback"}], 
+     ",", 
+     RowBox[{
+      RowBox[{"u", "\[LeftDoubleBracket]", 
+       RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "\[Equal]", "1"}], 
+     ",", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"ul", "\[LeftDoubleBracket]", 
+        RowBox[{"q", ",", "k"}], "\[RightDoubleBracket]"}], "=", 
+       RowBox[{
+        RowBox[{"Max", "[", "ul", "]"}], "+", "1"}]}], ";", 
+      RowBox[{"AppendTo", "[", 
+       RowBox[{"ulp", ",", 
+        RowBox[{"Max", "[", "ul", "]"}]}], "]"}]}]}], "]"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"q", ",", "2", ",", 
+     RowBox[{"n", "+", "1"}]}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"k", ",", "2", ",", 
+     RowBox[{"m", "+", "1"}]}], "}"}]}], "]"}]], "Output",
+ CellChangeTimes->{3.52873725414113*^9}]
+}, Open  ]],
+
+Cell["\<\
+We still need to use our ulp list to combine all our adjacent but differently \
+labeled clusters, however.  Using the same steps as outlined in the manually \
+calulated example:\
+\>", "Text",
+ CellChangeTimes->{{3.528736936219434*^9, 3.5287370296386003`*^9}}],
+
+Cell["\<\
+Creating a list of integers the length of ulp (this represents the index \
+values of ulp):\
+\>", "Text",
+ CellChangeTimes->{{3.5287370372479677`*^9, 3.528737054125849*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"new", " ", "=", " ", 
+  RowBox[{"Range", "[", 
+   RowBox[{"Length", "[", "ulp", "]"}], "]"}]}]], "Input",
+ CellChangeTimes->{{3.528737034992524*^9, 3.528737034994035*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "2", ",", "3", ",", "4"}], "}"}]], "Output",
+ CellChangeTimes->{3.528737254179965*^9}]
+}, Open  ]],
+
+Cell["\<\
+Turning ulp into a list of transformations:\
+\>", "Text",
+ CellChangeTimes->{{3.528737057829618*^9, 3.528737068005414*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"relabelrules1", " ", "=", " ", 
+  RowBox[{"Thread", "[", 
+   RowBox[{"new", "->", "ulp"}], "]"}]}]], "Input",
+ CellChangeTimes->{{3.528737073908628*^9, 3.52873707391051*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{"1", "\[Rule]", "1"}], ",", 
+   RowBox[{"2", "\[Rule]", "1"}], ",", 
+   RowBox[{"3", "\[Rule]", "2"}], ",", 
+   RowBox[{"4", "\[Rule]", "4"}]}], "}"}]], "Output",
+ CellChangeTimes->{3.52873725421177*^9}]
+}, Open  ]],
+
+Cell["\<\
+Using a //. to keep applying these transformations to ul until the lattice \
+stops changing:\
+\>", "Text",
+ CellChangeTimes->{{3.528737079678664*^9, 3.528737104316267*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"correctlabels", " ", "=", " ", 
+  RowBox[{"ulp", " ", "//.", " ", "relabelrules1"}]}]], "Input",
+ CellChangeTimes->{{3.528737109373205*^9, 3.528737109374679*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "1", ",", "1", ",", "4"}], "}"}]], "Output",
+ CellChangeTimes->{3.528737254245574*^9}]
+}, Open  ]],
+
+Cell["\<\
+And finally correcting our lattice so that the labels are sequential and \
+there are no duplicates:\
+\>", "Text",
+ CellChangeTimes->{{3.528737113349612*^9, 3.528737114427993*^9}, {
+  3.528737168698431*^9, 3.528737185465672*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"relabelrules2", " ", "=", " ", "\n", "   ", 
+  RowBox[{"Thread", "[", 
+   RowBox[{
+    RowBox[{"Union", "[", "correctlabels", "]"}], " ", "->", " ", "\n", 
+    "          ", 
+    RowBox[{"Range", "[", 
+     RowBox[{"Length", "[", 
+      RowBox[{"Union", "[", "correctlabels", "]"}], "]"}], "]"}]}], 
+   "]"}]}]], "Input",
+ CellChangeTimes->{{3.528737190707485*^9, 3.52873719070929*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{"1", "\[Rule]", "1"}], ",", 
+   RowBox[{"4", "\[Rule]", "2"}]}], "}"}]], "Output",
+ CellChangeTimes->{3.5287372542807713`*^9}]
+}, Open  ]],
+
+Cell["\<\
+Putting this all together into a module:\
+\>", "Text",
+ CellChangeTimes->{{3.528737196803742*^9, 3.5287372040650806`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ClusterLabel", "[", "r_List", "]"}], " ", ":=", " ", "\n", "\t", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"uup", " ", ":=", " ", 
+       RowBox[{"u", "[", 
+        RowBox[{"[", 
+         RowBox[{
+          RowBox[{"q", "-", "1"}], ",", " ", "k"}], "]"}], "]"}]}], ",", " ", 
+      
+      RowBox[{"uback", " ", ":=", " ", 
+       RowBox[{"u", "[", 
+        RowBox[{"[", 
+         RowBox[{"q", ",", " ", 
+          RowBox[{"k", "-", "1"}]}], "]"}], "]"}]}], ",", " ", "\n", "\t\t\t", 
+      RowBox[{"ulup", " ", ":=", " ", 
+       RowBox[{"ul", "[", 
+        RowBox[{"[", 
+         RowBox[{
+          RowBox[{"q", "-", "1"}], ",", " ", "k"}], "]"}], "]"}]}], ",", " ", 
+      
+      RowBox[{"ulback", " ", ":=", " ", 
+       RowBox[{"ul", "[", 
+        RowBox[{"[", 
+         RowBox[{"q", ",", " ", 
+          RowBox[{"k", "-", "1"}]}], "]"}], "]"}]}]}], "}"}], ",", " ", "\n", 
+    "\t", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"AddZeros", "[", "w_", "]"}], " ", ":=", " ", 
+      RowBox[{"Prepend", "[", 
+       RowBox[{"w", ",", " ", 
+        RowBox[{"Table", "[", 
+         RowBox[{"0", ",", " ", 
+          RowBox[{"{", 
+           RowBox[{"Length", "[", 
+            RowBox[{"w", "[", 
+             RowBox[{"[", "1", "]"}], "]"}], "]"}], "}"}]}], "]"}]}], "]"}]}],
+      ";", "\n", "\t", 
+     RowBox[{"u", " ", "=", " ", 
+      RowBox[{"Transpose", "[", 
+       RowBox[{"AddZeros", "[", 
+        RowBox[{"Transpose", "[", 
+         RowBox[{"AddZeros", "[", "r", "]"}], "]"}], "]"}], "]"}]}], ";", 
+     "\n", "\t", 
+     RowBox[{"(*", " ", 
+      RowBox[{
+       RowBox[{"Print", "[", " ", 
+        RowBox[{"MatrixForm", "[", 
+         RowBox[{"Reverse", "[", "u", "]"}], "]"}], "]"}], ";"}], " ", "*)"}],
+      "\n", "\t", 
+     RowBox[{"ul", " ", "=", " ", 
+      RowBox[{"u", " ", "/.", " ", 
+       RowBox[{"1", " ", "->", " ", "0"}]}]}], ";", "\n", "\t", 
+     RowBox[{"ulp", " ", "=", " ", 
+      RowBox[{"{", "}"}]}], ";", "\n", "\t", 
+     RowBox[{"Do", "[", 
+      RowBox[{
+       RowBox[{"Which", "[", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{"u", "[", 
+            RowBox[{"[", 
+             RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", "1"}], 
+          " ", "&&", " ", 
+          RowBox[{"uup", " ", "==", " ", "1"}], " ", "&&", " ", 
+          RowBox[{"uback", " ", "==", "1"}], " ", "&&", " ", 
+          RowBox[{"ulup", " ", "=!=", " ", "ulback"}]}], ",", " ", "\n", 
+         "  \t\t\t\t", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"ul", "[", 
+            RowBox[{"[", 
+             RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", 
+           RowBox[{"Min", "[", 
+            RowBox[{
+             RowBox[{"ulp", "[", 
+              RowBox[{"[", "ulback", "]"}], "]"}], ",", " ", 
+             RowBox[{"ulp", "[", 
+              RowBox[{"[", "ulup", "]"}], "]"}]}], " ", "]"}]}], ";", " ", 
+          "\n", " \t\t\t ", 
+          RowBox[{
+           RowBox[{"ulp", "[", 
+            RowBox[{"[", 
+             RowBox[{"Max", "[", 
+              RowBox[{
+               RowBox[{"ulp", "[", 
+                RowBox[{"[", "ulback", "]"}], "]"}], ",", " ", 
+               RowBox[{"ulp", "[", 
+                RowBox[{"[", "ulup", "]"}], "]"}]}], "]"}], " ", "]"}], "]"}],
+            " ", "=", " ", 
+           RowBox[{"Min", "[", 
+            RowBox[{
+             RowBox[{"ulp", "[", 
+              RowBox[{"[", "ulback", "]"}], "]"}], ",", " ", 
+             RowBox[{"ulp", "[", 
+              RowBox[{"[", "ulup", "]"}], "]"}]}], "]"}]}]}], ",", 
+         "                                     \t\t\t", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"u", "[", 
+            RowBox[{"[", 
+             RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", 
+           "1"}], " ", "&&", " ", 
+          RowBox[{"uup", " ", "==", " ", "1"}]}], ",", " ", 
+         RowBox[{
+          RowBox[{"ul", "[", 
+           RowBox[{"[", 
+            RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", 
+          "ulup"}], ",", "\n", "\t\t\t", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"u", "[", 
+            RowBox[{"[", 
+             RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", 
+           "1"}], " ", "&&", " ", 
+          RowBox[{"uback", " ", "==", " ", "1"}]}], ",", " ", 
+         RowBox[{
+          RowBox[{"ul", "[", 
+           RowBox[{"[", 
+            RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", 
+          "ulback"}], ",", "\n", "\t\t\t", 
+         RowBox[{
+          RowBox[{"u", "[", 
+           RowBox[{"[", 
+            RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "==", " ", "1"}],
+          ",", " ", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"ul", "[", 
+            RowBox[{"[", 
+             RowBox[{"q", ",", " ", "k"}], "]"}], "]"}], " ", "=", " ", 
+           RowBox[{
+            RowBox[{"Max", "[", "ul", "]"}], " ", "+", " ", "1"}]}], ";", 
+          "\t", 
+          RowBox[{"AppendTo", "[", 
+           RowBox[{"ulp", ",", " ", 
+            RowBox[{"Max", "[", "ul", "]"}]}], "]"}]}]}], " ", "\n", 
+        " \t\t \t", "]"}], ",", " ", "\n", "\t", 
+       RowBox[{"{", 
+        RowBox[{"q", ",", " ", "2", ",", " ", 
+         RowBox[{"Length", "[", "u", "]"}]}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"k", ",", " ", "2", ",", " ", 
+         RowBox[{"Length", "[", "u", "]"}]}], "}"}]}], "\n", "  \t", "]"}], 
+     ";", "\n", " \t\t    ", "\n", 
+     RowBox[{"new", " ", "=", " ", 
+      RowBox[{"Range", "[", 
+       RowBox[{"Length", "[", "ulp", "]"}], "]"}]}], ";", "\n", 
+     RowBox[{"relabelrules1", " ", "=", " ", 
+      RowBox[{"Thread", "[", 
+       RowBox[{"new", "->", "ulp"}], "]"}]}], ";", "\n", 
+     RowBox[{"correctlabels", " ", "=", " ", 
+      RowBox[{"ulp", "//.", "relabelrules1"}]}], ";", "\n", 
+     RowBox[{"relabelrules2", " ", "=", " ", 
+      RowBox[{"Thread", "[", 
+       RowBox[{
+        RowBox[{"Union", "[", "correctlabels", "]"}], " ", "->", " ", 
+        RowBox[{"Range", "[", 
+         RowBox[{"Length", "[", 
+          RowBox[{"Union", "[", "correctlabels", "]"}], "]"}], "]"}]}], 
+       "]"}]}], ";", "\n", 
+     RowBox[{"ufinal", " ", "=", " ", 
+      RowBox[{
+       RowBox[{"ul", " ", "//.", " ", "relabelrules1"}], " ", "/.", " ", 
+       "relabelrules2"}]}]}]}], "\n", "]"}]}]], "Input",
+ CellChangeTimes->{{3.528737210710863*^9, 3.528737210713023*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ClusterLabel", "[", "r", "]"}], "//", "MatrixForm"}]], "Input",
+ CellChangeTimes->{{3.52873721587889*^9, 3.528737217609962*^9}, {
+  3.528737270746969*^9, 3.528737276728725*^9}}],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {"0", "0", "0", "0", "0"},
+     {"0", "1", "0", "0", "1"},
+     {"0", "1", "0", "1", "1"},
+     {"0", "1", "1", "1", "0"},
+     {"0", "0", "0", "0", "2"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.528737272170733*^9, 3.528737277358882*^9}}]
+}, Open  ]],
+
+Cell["\<\
+And we see that our original cluster r has been correctly labeled\
+\>", "Text",
+ CellChangeTimes->{{3.528737280087304*^9, 3.528737290182621*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+An Overall Explanation of the Hoshen-Kopelman Algorithm:\
+\>", "Section",
+ CellChangeTimes->{{3.528737304544409*^9, 3.528737315493745*^9}}],
+
+Cell["\<\
+The Hoshen-Kopelman Algorithm is useful in that it allows us to identify and \
+label all of the contiguous clusters in a lattice in one pass of a lattice, \
+rather than several iterative passes as required by more simplistic methods.  \
+It accomplishes this by, rather than scanning all the neighbors of whichever \
+site it is evaluating, only scanning the site to the left and above the \
+current site.\
+\>", "Text",
+ CellChangeTimes->{{3.528737318813798*^9, 3.528737427595915*^9}}],
+
+Cell[TextData[{
+ "The algorithm proceeds as follows: Starting with an inputted lattice, an \
+extra row and column of zeros is added above and to the left of the lattice \
+to simplify our algorithm code (as explained above, these extra zeros help us \
+avoid using an If statement).  Starting with the top left site in the \
+original lattice, the algorithm proceed to check each site reading left to \
+right and down, just like reading a book.  At each site, the algorithm first \
+checks whether a site is occpuied or not.  If it\[CloseCurlyQuote]s not, the \
+algorithm does nothing and moves on.  If it is, the algorithm checks the \
+labels in the site immidiately above and the site immidiately to the left of \
+the current site.  If neither of these neighbors are occupied, the current \
+site gets a new label (one greater than the last label used), and the \
+algorithm moves on.  If only one neighbor is occupied, the algorithm gives \
+the current site the same label as that neighbor (in other words, identifying \
+the current site as a member of same cluster as the neighbor).  If ",
+ StyleBox["both",
+  FontSlant->"Italic"],
+ " neighbors are occupied, the algorithm takes the lower of the two neighbor\
+\[CloseCurlyQuote]s labels and assigns it to the current cluster.  The \
+algorithm continues until every site in the cluster has been checked and \
+labeled correctly.\n\nThere is a problem at this point, however.  Since there \
+were points at which we had to choose between two different cluster labels, \
+we know there are sites on the lattice at which two labels are adjacent, and \
+thus really should be labeled as one cluster.  Luckily, while the algorithm \
+was going through the procedure in the previous paragraph it was also keeping \
+a running list, \[OpenCurlyDoubleQuote]ulp\[CloseCurlyDoubleQuote], of which \
+clusters are really touching other clusters (the list is organized such that \
+each index value is the label of a list in the uncorrected lattice and the \
+value at each index is the correct label the cluster should have).  This list \
+can be turned into a set of transformations, which are then iterated over the \
+lattice until it stops changing.  The lattice labels are then changed to be \
+sequential starting at 1 and we get our output: a lattice with all the unique \
+clusters labeled."
+}], "Text",
+ CellChangeTimes->{{3.528737429642356*^9, 3.528737515392477*^9}, {
+  3.528737552919608*^9, 3.528737974754609*^9}, {3.528742078262059*^9, 
+  3.528742078621478*^9}, {3.528742444180654*^9, 3.528742588007042*^9}}]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{1920, 948},
+WindowMargins->{{0, Automatic}, {Automatic, 0}},
+ShowSelection->True,
+FrontEndVersion->"8.0 for Microsoft Windows (64-bit) (February 23, 2011)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[579, 22, 229, 5, 83, "Title"],
+Cell[811, 29, 129, 2, 49, "Subtitle"],
+Cell[CellGroupData[{
+Cell[965, 35, 263, 5, 71, "Section"],
+Cell[1231, 42, 309, 6, 29, "Text"],
+Cell[CellGroupData[{
+Cell[1565, 52, 577, 16, 31, "Input"],
+Cell[2145, 70, 1220, 28, 72, "Output"]
+}, Open  ]],
+Cell[3380, 101, 1551, 24, 83, "Text"],
+Cell[CellGroupData[{
+Cell[4956, 129, 715, 18, 31, "Input"],
+Cell[5674, 149, 1265, 29, 87, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6976, 183, 349, 9, 31, "Input"],
+Cell[7328, 194, 1280, 28, 87, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8645, 227, 184, 4, 31, "Input"],
+Cell[8832, 233, 569, 9, 30, "Output"]
+}, Open  ]],
+Cell[9416, 245, 574, 10, 29, "Text"],
+Cell[9993, 257, 864, 13, 47, "Text"],
+Cell[CellGroupData[{
+Cell[10882, 274, 816, 18, 112, "Input"],
+Cell[11701, 294, 1210, 27, 87, "Output"],
+Cell[12914, 323, 1212, 27, 87, "Output"],
+Cell[14129, 352, 603, 9, 30, "Output"]
+}, Open  ]],
+Cell[14747, 364, 576, 9, 29, "Text"],
+Cell[CellGroupData[{
+Cell[15348, 377, 661, 16, 112, "Input"],
+Cell[16012, 395, 1091, 25, 87, "Output"],
+Cell[17106, 422, 1091, 25, 87, "Output"],
+Cell[18200, 449, 507, 8, 30, "Output"]
+}, Open  ]],
+Cell[18722, 460, 774, 13, 47, "Text"],
+Cell[CellGroupData[{
+Cell[19521, 477, 1707, 41, 112, "Input"],
+Cell[21231, 520, 996, 25, 87, "Output"],
+Cell[22230, 547, 996, 25, 87, "Output"],
+Cell[23229, 574, 412, 8, 30, "Output"]
+}, Open  ]],
+Cell[23656, 585, 282, 5, 29, "Text"],
+Cell[CellGroupData[{
+Cell[23963, 594, 661, 16, 112, "Input"],
+Cell[24627, 612, 1001, 25, 87, "Output"],
+Cell[25631, 639, 999, 25, 87, "Output"],
+Cell[26633, 666, 425, 8, 30, "Output"]
+}, Open  ]],
+Cell[27073, 677, 1322, 21, 65, "Text"],
+Cell[CellGroupData[{
+Cell[28420, 702, 1430, 37, 172, "Input"],
+Cell[29853, 741, 998, 25, 87, "Output"],
+Cell[30854, 768, 997, 25, 87, "Output"],
+Cell[31854, 795, 426, 8, 30, "Output"],
+Cell[32283, 805, 998, 25, 87, "Output"],
+Cell[33284, 832, 998, 25, 87, "Output"],
+Cell[34285, 859, 424, 8, 30, "Output"]
+}, Open  ]],
+Cell[34724, 870, 302, 5, 29, "Text"],
+Cell[CellGroupData[{
+Cell[35051, 879, 468, 11, 92, "Input"],
+Cell[35522, 892, 970, 24, 87, "Output"],
+Cell[36495, 918, 973, 24, 87, "Output"],
+Cell[37471, 944, 397, 7, 30, "Output"]
+}, Open  ]],
+Cell[37883, 954, 223, 5, 29, "Text"],
+Cell[CellGroupData[{
+Cell[38131, 963, 522, 11, 92, "Input"],
+Cell[38656, 976, 945, 24, 87, "Output"],
+Cell[39604, 1002, 944, 24, 87, "Output"],
+Cell[40551, 1028, 371, 7, 30, "Output"]
+}, Open  ]],
+Cell[40937, 1038, 382, 7, 29, "Text"],
+Cell[CellGroupData[{
+Cell[41344, 1049, 1135, 32, 112, "Input"],
+Cell[42482, 1083, 923, 23, 87, "Output"],
+Cell[43408, 1108, 922, 23, 87, "Output"],
+Cell[44333, 1133, 349, 6, 30, "Output"]
+}, Open  ]],
+Cell[44697, 1142, 211, 4, 29, "Text"],
+Cell[CellGroupData[{
+Cell[44933, 1150, 662, 16, 112, "Input"],
+Cell[45598, 1168, 771, 21, 87, "Output"],
+Cell[46372, 1191, 771, 21, 87, "Output"],
+Cell[47146, 1214, 207, 4, 30, "Output"]
+}, Open  ]],
+Cell[47368, 1221, 588, 10, 47, "Text"],
+Cell[47959, 1233, 138, 3, 29, "Text"],
+Cell[CellGroupData[{
+Cell[48122, 1240, 278, 7, 31, "Input"],
+Cell[48403, 1249, 352, 9, 30, "Output"]
+}, Open  ]],
+Cell[48770, 1261, 180, 4, 29, "Text"],
+Cell[CellGroupData[{
+Cell[48975, 1269, 393, 10, 31, "Input"],
+Cell[49371, 1281, 801, 22, 87, "Output"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[50221, 1309, 130, 3, 71, "Section"],
+Cell[50354, 1314, 201, 4, 29, "Text"],
+Cell[50558, 1320, 183, 4, 29, "Text"],
+Cell[50744, 1326, 798, 22, 52, "Input"],
+Cell[51545, 1350, 108, 1, 29, "Text"],
+Cell[CellGroupData[{
+Cell[51678, 1355, 284, 7, 52, "Input"],
+Cell[51965, 1364, 89, 2, 30, "Output"]
+}, Open  ]],
+Cell[52069, 1369, 550, 9, 29, "Text"],
+Cell[CellGroupData[{
+Cell[52644, 1382, 2814, 81, 252, "Input"],
+Cell[55461, 1465, 613, 12, 21, "Message"],
+Cell[56077, 1479, 3021, 82, 50, "Output"]
+}, Open  ]],
+Cell[59113, 1564, 214, 4, 29, "Text"],
+Cell[CellGroupData[{
+Cell[59352, 1572, 3261, 89, 312, "Input"],
+Cell[62616, 1663, 472, 10, 21, "Message"],
+Cell[63091, 1675, 2915, 81, 50, "Output"]
+}, Open  ]],
+Cell[66021, 1759, 269, 5, 29, "Text"],
+Cell[66293, 1766, 182, 4, 29, "Text"],
+Cell[CellGroupData[{
+Cell[66500, 1774, 195, 4, 31, "Input"],
+Cell[66698, 1780, 135, 3, 30, "Output"]
+}, Open  ]],
+Cell[66848, 1786, 133, 3, 29, "Text"],
+Cell[CellGroupData[{
+Cell[67006, 1793, 198, 4, 31, "Input"],
+Cell[67207, 1799, 254, 7, 30, "Output"]
+}, Open  ]],
+Cell[67476, 1809, 182, 4, 29, "Text"],
+Cell[CellGroupData[{
+Cell[67683, 1817, 186, 3, 31, "Input"],
+Cell[67872, 1822, 135, 3, 30, "Output"]
+}, Open  ]],
+Cell[68022, 1828, 238, 5, 29, "Text"],
+Cell[CellGroupData[{
+Cell[68285, 1837, 410, 10, 72, "Input"],
+Cell[68698, 1849, 177, 5, 30, "Output"]
+}, Open  ]],
+Cell[68890, 1857, 132, 3, 29, "Text"],
+Cell[69025, 1862, 6487, 170, 472, "Input"],
+Cell[CellGroupData[{
+Cell[75537, 2036, 212, 4, 31, "Input"],
+Cell[75752, 2042, 777, 21, 87, "Output"]
+}, Open  ]],
+Cell[76544, 2066, 155, 3, 29, "Text"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[76736, 2074, 149, 3, 71, "Section"],
+Cell[76888, 2079, 493, 8, 47, "Text"],
+Cell[77384, 2089, 2544, 36, 155, "Text"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
